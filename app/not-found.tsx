@@ -21,7 +21,7 @@ export default function NotFound() {
         <p className="label-tech justify-center">Error 404 — open circuit</p>
         <h1 className="display mt-5 text-5xl sm:text-7xl">System not found.</h1>
         <p className="mx-auto mt-6 max-w-md text-base leading-relaxed text-steel">
-          The page you're looking for could not be located. The line below is still live —
+          The page you&apos;re looking for could not be located. The line below is still live —
           follow it home.
         </p>
         <div className="mt-10">

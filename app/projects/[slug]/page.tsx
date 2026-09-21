@@ -10,15 +10,16 @@ import { getService } from "@/lib/data/services";
 import { buildMetadata } from "@/lib/seo";
 
 interface Params {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }
 
 export function generateStaticParams() {
   return projects.map((p) => ({ slug: p.slug }));
 }
 
-export function generateMetadata({ params }: Params): Metadata {
-  const project = getProject(params.slug);
+export async function generateMetadata({ params }: Params): Promise<Metadata> {
+  const { slug } = await params;
+  const project = getProject(slug);
   if (!project) return {};
   return buildMetadata({
     title: `${project.name} — ${project.category} Project | MOJATECH`,
@@ -29,8 +30,9 @@ export function generateMetadata({ params }: Params): Metadata {
 
 const stages = ["challenge", "approach", "solution", "result"] as const;
 
-export default function ProjectPage({ params }: Params) {
-  const project = getProject(params.slug);
+export default async function ProjectPage({ params }: Params) {
+  const { slug } = await params;
+  const project = getProject(slug);
   if (!project) notFound();
 
   const service = getService(project.serviceSlug);

@@ -1,6 +1,23 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+
+const FINE = "(pointer: fine)";
+const REDUCED = "(prefers-reduced-motion: reduce)";
+
+function subscribe(onChange: () => void) {
+  const fine = window.matchMedia(FINE);
+  const reduced = window.matchMedia(REDUCED);
+  fine.addEventListener("change", onChange);
+  reduced.addEventListener("change", onChange);
+  return () => {
+    fine.removeEventListener("change", onChange);
+    reduced.removeEventListener("change", onChange);
+  };
+}
+const getSnapshot = () =>
+  window.matchMedia(FINE).matches && !window.matchMedia(REDUCED).matches;
+const getServerSnapshot = () => false;
 
 /**
  * Subtle custom cursor. Desktop / fine-pointer devices only.
@@ -9,15 +26,8 @@ import { useEffect, useRef, useState } from "react";
  */
 export default function Cursor() {
   const ref = useRef<HTMLDivElement>(null);
-  const [enabled, setEnabled] = useState(false);
+  const enabled = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
   const [label, setLabel] = useState("");
-
-  useEffect(() => {
-    const fine = window.matchMedia("(pointer: fine)");
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
-    if (!fine.matches || reduced.matches) return;
-    setEnabled(true);
-  }, []);
 
   useEffect(() => {
     if (!enabled) return;

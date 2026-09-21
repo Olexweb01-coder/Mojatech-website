@@ -11,15 +11,16 @@ import { buildMetadata } from "@/lib/seo";
 import { siteUrl } from "@/lib/data/company";
 
 interface Params {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }
 
 export function generateStaticParams() {
   return articles.map((a) => ({ slug: a.slug }));
 }
 
-export function generateMetadata({ params }: Params): Metadata {
-  const article = getArticle(params.slug);
+export async function generateMetadata({ params }: Params): Promise<Metadata> {
+  const { slug } = await params;
+  const article = getArticle(slug);
   if (!article) return {};
   return buildMetadata({
     title: article.metaTitle,
@@ -29,8 +30,9 @@ export function generateMetadata({ params }: Params): Metadata {
   });
 }
 
-export default function ArticlePage({ params }: Params) {
-  const article = getArticle(params.slug);
+export default async function ArticlePage({ params }: Params) {
+  const { slug } = await params;
+  const article = getArticle(slug);
   if (!article) notFound();
 
   const url = `${siteUrl}/insights/${article.slug}`;

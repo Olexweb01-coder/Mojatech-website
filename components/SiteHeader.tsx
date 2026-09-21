@@ -40,8 +40,15 @@ export default function SiteHeader() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Close the menu on navigation and lock scroll while open
-  useEffect(() => setOpen(false), [pathname]);
+  // Close the menu when the route changes (React's recommended pattern:
+  // adjust state during render instead of calling setState in an effect)
+  const [lastPath, setLastPath] = useState(pathname);
+  if (pathname !== lastPath) {
+    setLastPath(pathname);
+    setOpen(false);
+  }
+
+  // Lock page scroll while the menu is open
   useEffect(() => {
     document.body.style.overflow = open ? "hidden" : "";
     return () => {

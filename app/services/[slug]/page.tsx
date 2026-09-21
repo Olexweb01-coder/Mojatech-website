@@ -11,15 +11,16 @@ import { buildMetadata } from "@/lib/seo";
 import { company, siteUrl } from "@/lib/data/company";
 
 interface Params {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }
 
 export function generateStaticParams() {
   return services.map((s) => ({ slug: s.slug }));
 }
 
-export function generateMetadata({ params }: Params): Metadata {
-  const service = getService(params.slug);
+export async function generateMetadata({ params }: Params): Promise<Metadata> {
+  const { slug } = await params;
+  const service = getService(slug);
   if (!service) return {};
   return buildMetadata({
     title: service.metaTitle,
@@ -28,8 +29,9 @@ export function generateMetadata({ params }: Params): Metadata {
   });
 }
 
-export default function ServicePage({ params }: Params) {
-  const service = getService(params.slug);
+export default async function ServicePage({ params }: Params) {
+  const { slug } = await params;
+  const service = getService(slug);
   if (!service) notFound();
 
   const related = service.related
@@ -145,7 +147,7 @@ export default function ServicePage({ params }: Params) {
           <Reveal delay={150}>
             <p className="mt-8 max-w-2xl font-mono text-[11px] uppercase leading-relaxed tracking-[0.16em] text-steel">
               Scope descriptions are editable in <span className="text-paper/70">lib/data/services.ts</span> —
-              refine them to match MOJATECH's exact confirmed offering.
+              refine them to match MOJATECH&apos;s exact confirmed offering.
             </p>
           </Reveal>
         </div>

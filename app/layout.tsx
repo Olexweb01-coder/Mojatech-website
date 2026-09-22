@@ -1,112 +1,61 @@
 import type { Metadata, Viewport } from "next";
+import Script from "next/script";
+import { Hanken_Grotesk } from "next/font/google";
 import "./globals.css";
-import SiteHeader from "@/components/SiteHeader";
-import SiteFooter from "@/components/SiteFooter";
-import Cursor from "@/components/Cursor";
-import ScrollProgress from "@/components/ScrollProgress";
-import { company, siteUrl, isProvided } from "@/lib/data/company";
+import { Header, Footer } from "@/components/site/Chrome";
+import Intro from "@/components/site/Intro";
+import Arik from "@/components/site/Arik";
+import SmoothScroll, { RouteReset } from "@/components/site/Motion";
+import { company } from "@/lib/data/company";
+import { businessSchema, siteUrl } from "@/lib/seo";
+
+const hanken = Hanken_Grotesk({ subsets: ["latin"], weight: ["400", "500", "600", "700", "800"], display: "swap", variable: "--font-hanken" });
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default:
-      "MOJATECH Electrical Enterprises | Electrical, Solar, Security & Facility Solutions in Lagos",
-    template: "%s",
+    default: "MOJATECH Electrical Enterprises | Electrical, solar and security in Nigeria",
+    template: "%s | MOJATECH Electrical Enterprises",
   },
-  description: company.description,
-  applicationName: company.shortName,
-  keywords: [
-    "MOJATECH",
-    "MOJATECH Electrical Enterprises",
-    "electrical engineering company in Lagos",
-    "electrical services Lagos",
-    "solar installation Lagos",
-    "security systems Lagos",
-    "facility management Lagos",
-    "electrical consultant Lagos",
-  ],
+  description: "MOJATECH Electrical Enterprises installs, maintains and backs up electrical, solar and security systems for homes, businesses and industry across Nigeria. Registered since 2019.",
+  applicationName: company.name,
+  keywords: ["MOJATECH", "Mojatech Electrical", "electrician Nigeria", "solar installation Nigeria", "inverter installation Lagos", "CCTV installation Nigeria", "electrical contractor Ogun State"],
+  authors: [{ name: company.name }],
+  creator: company.name,
   robots: { index: true, follow: true },
+  icons: { icon: "/brand/mojatech-mark.png" },
 };
 
-export const viewport: Viewport = {
-  themeColor: "#0B0C12",
-  width: "device-width",
-  initialScale: 1,
-};
+export const viewport: Viewport = { themeColor: "#05081f", width: "device-width", initialScale: 1, viewportFit: "cover" };
 
-function StructuredData() {
-  const sameAs = Object.values(company.social).filter((v) => isProvided(v));
-  const org = {
-    "@context": "https://schema.org",
-    "@type": ["Organization", "LocalBusiness"],
-    "@id": `${siteUrl}/#organization`,
-    name: company.name,
-    url: siteUrl,
-    logo: `${siteUrl}/logo.jpeg`,
-    description: company.description,
-    slogan: company.tagline,
-    areaServed: { "@type": "City", name: company.location.city },
-    address: {
-      "@type": "PostalAddress",
-      addressLocality: company.location.city,
-      addressRegion: company.location.state,
-      addressCountry: company.location.countryCode,
-      ...(isProvided(company.contact.address)
-        ? { streetAddress: company.contact.address }
-        : {}),
-    },
-    ...(isProvided(company.contact.phone) ? { telephone: company.contact.phone } : {}),
-    ...(isProvided(company.contact.email) ? { email: company.contact.email } : {}),
-    ...(sameAs.length ? { sameAs } : {}),
-  };
-  const site = {
-    "@context": "https://schema.org",
-    "@type": "WebSite",
-    "@id": `${siteUrl}/#website`,
-    url: siteUrl,
-    name: company.name,
-    publisher: { "@id": `${siteUrl}/#organization` },
-  };
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(org) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(site) }}
-      />
-    </>
-  );
-}
-
-export default function RootLayout({
-  children,
-}: Readonly<{ children: React.ReactNode }>) {
-  return (
-    <html lang="en">
+    <html lang="en-NG" className={hanken.variable}>
       <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap"
-          rel="stylesheet"
-        />
+        <Script id="mj-open" strategy="beforeInteractive">{`
+          (function () {
+            var root = document.documentElement, show = false;
+            var calm = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+            try {
+              var k = "mj-last-visit", last = Number(localStorage.getItem(k)) || 0, now = Date.now();
+              show = now - last > 600000 && !calm && location.pathname === "/";
+              localStorage.setItem(k, String(now));
+            } catch (e) {}
+            root.setAttribute("data-intro", show ? "on" : "off");
+          })();
+        `}</Script>
+        <link rel="preload" as="image" href="/stock/house-off-900.webp" fetchPriority="high" />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(businessSchema()) }} />
       </head>
       <body>
-        <a
-          href="#main"
-          className="sr-only z-[90] bg-brand-red px-4 py-2 text-white focus:not-sr-only focus:fixed focus:left-4 focus:top-4"
-        >
-          Skip to content
-        </a>
-        <StructuredData />
-        <ScrollProgress />
-        <Cursor />
-        <SiteHeader />
+        <a href="#main" className="skip-link">Skip to content</a>
+        <Intro />
+        <Header />
         <main id="main">{children}</main>
-        <SiteFooter />
+        <Footer />
+        <Arik />
+        <SmoothScroll />
+        <RouteReset />
       </body>
     </html>
   );

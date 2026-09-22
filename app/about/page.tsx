@@ -1,160 +1,78 @@
-import type { Metadata } from "next";
-import Link from "next/link";
-import PageHero from "@/components/PageHero";
-import Reveal from "@/components/Reveal";
-import SectionHeading from "@/components/SectionHeading";
-import ImagePlaceholder from "@/components/ImagePlaceholder";
-import CTASection from "@/components/CTASection";
-import { buildMetadata } from "@/lib/seo";
-import { company } from "@/lib/data/company";
-import { services } from "@/lib/data/services";
+import { Hero, Ctas } from "@/components/site/Bits";
+import PageMotion from "@/components/site/PageMotion";
+import { company, process, why, work } from "@/lib/data/company";
+import { meta } from "@/lib/seo";
 
-export const metadata: Metadata = buildMetadata({
-  title: "About MOJATECH Electrical Enterprises | Engineering Company in Lagos",
-  description:
-    "MOJATECH Electrical Enterprises is a Lagos-based engineering company delivering electrical, solar, security, safety, consultancy and facility solutions with one standard: reliability.",
-  path: "/about",
+export const metadata = meta({
+  title: "About MOJATECH: electrical and solar engineering since 2019",
+  description: "MOJATECH Electrical Enterprises has installed, maintained and backed up power systems since 2019 for homes, businesses and industry across Nigeria. CAC registered, NEMSA certified.",
+  path: "/about", image: "/stock/about.webp",
 });
 
-const commitments = [
-  {
-    title: "Reliability",
-    body: "A system that works most of the time is a system that fails. MOJATECH designs, installs and maintains for dependable operation under real conditions.",
-  },
-  {
-    title: "Safety",
-    body: "Every installation is treated as something people will live and work beside for years. Safe practice is non-negotiable at every stage.",
-  },
-  {
-    title: "Quality",
-    body: "Correct materials, correct methods, documented work. Quality is what makes a system cheap to own, not just cheap to buy.",
-  },
+const PROMISES: [string, string][] = [
+  ["We assess.", "Every job starts with the load your building actually runs, not a price list."],
+  ["We design.", "Circuits, cable sizes and protection planned around that load."],
+  ["We install.", "Our own team, Grade A cable, neat routes, tested before hand-over."],
+  ["We stay.", "Support after hand-over, and maintenance whenever you need it."],
 ];
 
-export default function AboutPage() {
+export default function About() {
   return (
     <>
-      <PageHero
-        eyebrow="About MOJATECH"
-        title="Engineering with purpose."
-        lead="MOJATECH Electrical Enterprises is a Lagos-based engineering company working across electrical systems, solar power, security, safety, consultancy and building facility solutions."
-        crumbs={[
-          { name: "Home", href: "/" },
-          { name: "About", href: "/about" },
-        ]}
-      />
+      <PageMotion kind="about" />
+      <Hero kicker="About us" head="We keep buildings powered, safe and running."
+        lead="MOJATECH Electrical Enterprises has installed, maintained and backed up power systems since 2019, for homes, businesses and industry across Nigeria."
+        img="/stock/about.webp" pos="50% 58%" ctas={<Ctas secondary={["Our work", "/work"]} light />} />
 
-      {/* Who we are */}
-      <section className="relative py-24 sm:py-32">
-        <div className="shell grid gap-14 lg:grid-cols-12">
-          <div className="lg:col-span-6">
-            <SectionHeading
-              eyebrow="Who we are"
-              title="One technical partner for the systems buildings depend on."
-            />
-            <Reveal delay={120}>
-              <div className="mt-8 space-y-5 text-base leading-relaxed text-steel">
-                <p>
-                  Most buildings collect their technical systems piece by piece — one
-                  vendor for wiring, another for solar, another for cameras, nobody for
-                  the way they interact. MOJATECH exists to replace that patchwork with
-                  a single accountable engineering partner.
-                </p>
-                <p>
-                  Our work spans electrical engineering and installation, solar power,
-                  security and safety systems, electrical consultancy, general building
-                  management and facility solutions — delivered in{" "}
-                  {company.location.city}, {company.location.country}.
-                </p>
-                <p>
-                  The approach is the same at every scale: understand the real need,
-                  design the system properly, install it safely, document it, and stay
-                  available to support it.
-                </p>
-              </div>
-            </Reveal>
-          </div>
-          <div className="lg:col-span-6">
-            <Reveal variant="mask">
-              <ImagePlaceholder label="MOJATECH Engineering Team On Site Photo" ratio="aspect-[4/3]" />
-            </Reveal>
-            <Reveal delay={140}>
-              <ImagePlaceholder
-                label="Electrical Panel / Workmanship Detail Photo"
-                ratio="aspect-[16/7]"
-                className="mt-6"
-              />
-            </Reveal>
-          </div>
-        </div>
-      </section>
-
-      {/* Animated statement */}
-      <section className="relative overflow-hidden border-y border-line py-24 sm:py-32">
-        <div className="grid-bg pointer-events-none absolute inset-0 opacity-50" />
-        <div className="shell relative">
-          <p className="label-tech mb-10">The standard</p>
-          <div className="display space-y-2 text-6xl sm:text-8xl lg:text-9xl">
-            <Reveal><span className="block">Power.</span></Reveal>
-            <Reveal delay={180}><span className="block text-brand-redBright">Safety.</span></Reveal>
-            <Reveal delay={360}><span className="block">Reliability.</span></Reveal>
-          </div>
-        </div>
-      </section>
-
-      {/* Commitments */}
-      <section className="relative py-24 sm:py-32">
-        <div className="shell">
-          <SectionHeading
-            eyebrow="Our commitments"
-            tone="blue"
-            title="What every project is measured against."
-          />
-          <div className="mt-14 grid gap-px overflow-hidden border border-line bg-line md:grid-cols-3">
-            {commitments.map((c, i) => (
-              <Reveal key={c.title} delay={i * 110} className="bg-ink">
-                <div className="h-full p-8">
-                  <span className="font-mono text-[11px] uppercase tracking-[0.22em] text-brand-blueBright">
-                    Commitment
-                  </span>
-                  <h3 className="display mt-4 text-2xl">{c.title}</h3>
-                  <p className="mt-4 text-sm leading-relaxed text-steel">{c.body}</p>
-                </div>
-              </Reveal>
+      <section className="sec promise">
+        <div className="wrap">
+          <p className="kicker">How we work</p>
+          <div className="promise-stack">
+            {PROMISES.map(([h, p], i) => (
+              <div className="promise-item" data-i={i} key={h}><h2>{h}</h2><p>{p}</p></div>
             ))}
           </div>
+          <div className="promise-dots">{PROMISES.map((_, i) => <i key={i} className={i ? undefined : "on"} />)}</div>
         </div>
       </section>
 
-      {/* Expertise links */}
-      <section className="relative border-t border-line py-24 sm:py-32">
-        <div className="shell">
-          <SectionHeading eyebrow="Areas of expertise" title="Where we work." />
-          <ul className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {services.map((s, i) => (
-              <Reveal key={s.slug} delay={i * 70}>
-                <li>
-                  <Link
-                    href={`/services/${s.slug}`}
-                    data-cursor="Explore"
-                    className="group flex items-center justify-between border border-line bg-panel/50 px-6 py-5 transition-colors hover:border-paper/25"
-                  >
-                    <span className="display text-lg group-hover:text-brand-redBright">
-                      {s.name}
-                    </span>
-                    <span className="btn-arrow text-steel">→</span>
-                  </Link>
-                </li>
-              </Reveal>
-            ))}
-          </ul>
+      <section className="sec dark">
+        <div className="wrap">
+          <div className="counters">
+            <div className="counter"><b>2019</b><span>Registered with the Corporate Affairs Commission, {company.registration.number}</span></div>
+            <div className="counter"><b data-count="7">0</b><span>Services under one roof, from wiring to automation</span></div>
+            <div className="counter"><b data-count="36">0</b><span>States we can work in: anywhere in Nigeria</span></div>
+            <div className="counter"><b>NEMSA</b><span>Electrical installation competency, Category C</span></div>
+          </div>
         </div>
       </section>
 
-      <CTASection
-        title={"Let's talk about\nyour building."}
-        copy="Whether it's a new installation or systems that need an honest assessment, the conversation starts the same way."
-      />
+      <section className="sec">
+        <div className="wrap grid-2">
+          <div><p className="kicker">What we believe</p><h2 className="h2">Get the load right, and everything after it is simpler.</h2></div>
+          <div>
+            <p className="lead">Most electrical problems we are called to fix started as a guess: a cable too small, a board too full, an inverter sized by price instead of need. We would rather measure first and tell you what the job really involves.</p>
+            <ul className="why" style={{ marginTop: 26 }}>{why.map((w) => <li key={w}>{w}</li>)}</ul>
+          </div>
+        </div>
+        <div className="wrap strip-wrap">
+          <ul className="strip">{work.slice(0, 5).map((w) => (
+            <figure key={w.title}>{/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={w.img} alt={w.alt} loading="lazy" /></figure>
+          ))}</ul>
+        </div>
+      </section>
+
+      <section className="sec tint">
+        <div className="wrap sec-head">
+          <p className="kicker">How every job runs</p>
+          <h2 className="h2">Six steps, start to finish.</h2>
+        </div>
+        <div className="wrap grid-3" style={{ marginTop: 44 }}>
+          {process.map(([t, d], i) => <div className="tile" key={t}><h3>{i + 1}. {t}</h3><p>{d}</p></div>)}
+        </div>
+        <div className="wrap" style={{ marginTop: 44 }}><Ctas secondary={["Careers", "/careers"]} /></div>
+      </section>
     </>
   );
 }

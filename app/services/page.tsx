@@ -1,91 +1,56 @@
-import type { Metadata } from "next";
 import Link from "next/link";
-import PageHero from "@/components/PageHero";
-import Reveal from "@/components/Reveal";
-import Motif from "@/components/Motif";
-import ServiceMap from "@/components/ServiceMap";
-import CTASection from "@/components/CTASection";
+import { Hero, Ctas, WA } from "@/components/site/Bits";
+import PageMotion from "@/components/site/PageMotion";
 import { services } from "@/lib/data/services";
-import { buildMetadata } from "@/lib/seo";
+import { meta } from "@/lib/seo";
 
-export const metadata: Metadata = buildMetadata({
-  title: "Engineering Services in Lagos — Electrical, Solar, Security, Facility | MOJATECH",
-  description:
-    "Explore MOJATECH's services in Lagos, Nigeria: electrical engineering, solar power, security and safety systems, electrical consultancy and building facility solutions.",
-  path: "/services",
+export const metadata = meta({
+  title: "Services: electrical, solar, CCTV and industrial power",
+  description: "Electrical installation, solar and inverter backup, CCTV and security, industrial and low-voltage systems, maintenance, power audits and electrical automation, across Nigeria.",
+  path: "/services", image: "/stock/services.webp",
 });
 
-export default function ServicesPage() {
+export default function Services() {
   return (
     <>
-      <PageHero
-        eyebrow="Services"
-        title="What we engineer."
-        lead="Six connected disciplines with one standard behind them. Every service below has a dedicated page explaining scope, approach and how to start."
-        crumbs={[
-          { name: "Home", href: "/" },
-          { name: "Services", href: "/services" },
-        ]}
-      />
+      <PageMotion kind="services" />
+      <Hero kicker="Services" head="What we install, fix and look after."
+        lead="Seven services, one team. Pick what you need, or describe the problem and we will point you to it."
+        img="/stock/services.webp" ctas={<Ctas secondary={["Talk on WhatsApp", WA]} light />} />
 
-      <section className="relative py-20 sm:py-28">
-        <div className="shell space-y-20 sm:space-y-28">
-          {services.map((s, i) => (
-            <article
-              key={s.slug}
-              className={`grid items-center gap-10 lg:grid-cols-2 ${
-                i % 2 ? "lg:[&>*:first-child]:order-2" : ""
-              }`}
-            >
-              <div>
-                <Reveal>
-                  <p className="label-tech">{s.navLabel} system</p>
-                </Reveal>
-                <Reveal delay={90}>
-                  <h2 className="display mt-4 text-4xl sm:text-5xl">{s.name}</h2>
-                </Reveal>
-                <Reveal delay={170}>
-                  <p className="mt-5 max-w-xl text-base leading-relaxed text-steel">{s.intro}</p>
-                </Reveal>
-                <Reveal delay={250}>
-                  <div className="mt-8 flex flex-wrap gap-4">
-                    <Link href={`/services/${s.slug}`} className="btn-primary" data-cursor="Explore">
-                      Explore service <span className="btn-arrow">→</span>
-                    </Link>
-                    <Link href="/contact" className="btn-ghost" data-cursor="Connect">
-                      {s.cta}
-                    </Link>
-                  </div>
-                </Reveal>
-              </div>
-              <Reveal variant={i % 2 ? "left" : "right"} delay={140}>
-                <div className="border border-line bg-panel/40 p-6 sm:p-10">
-                  <Motif kind={s.motif} />
+      <section className="sec">
+        <div className="wrap sindex">
+          <div className="slist">
+            {services.map((s) => (
+              <Link className="srow" href={"/services/" + s.id} key={s.id} data-name={s.name}>
+                <div>
+                  <h2 className="h3">{s.name}</h2>
+                  <p>{s.sub}</p>
+                  <span className="rowimg">{/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={s.img} alt="" style={{ objectPosition: s.pos }} loading="lazy" /></span>
                 </div>
-              </Reveal>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="relative overflow-hidden border-t border-line py-24 sm:py-32">
-        <div className="grid-bg-fine pointer-events-none absolute inset-0 opacity-60" />
-        <div className="shell relative">
-          <Reveal>
-            <p className="label-tech label-tech--blue">One connected system</p>
-          </Reveal>
-          <Reveal delay={100}>
-            <h2 className="display mt-4 max-w-3xl text-4xl sm:text-5xl">
-              Every discipline routes back to one partner.
-            </h2>
-          </Reveal>
-          <div className="mt-14">
-            <ServiceMap />
+                <span className="go" aria-hidden="true">&#8594;</span>
+              </Link>
+            ))}
           </div>
+          <figure className="spreview">
+            {services.map((s, i) => (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img key={s.id} src={s.img} alt="" className={i ? undefined : "on"} style={{ objectPosition: s.pos }} loading="lazy" />
+            ))}
+            <figcaption data-preview-cap>{services[0].name}</figcaption>
+          </figure>
         </div>
       </section>
 
-      <CTASection />
+      <section className="sec tint">
+        <div className="wrap sec-head">
+          <p className="kicker">Not sure which you need?</p>
+          <h2 className="h2">Describe the problem. We will tell you.</h2>
+          <p className="lead">Send a photo of the board, the fault or the building, and we will say what the job involves.</p>
+          <Ctas secondary={["WhatsApp us", WA]} />
+        </div>
+      </section>
     </>
   );
 }

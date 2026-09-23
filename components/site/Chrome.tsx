@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -126,7 +126,6 @@ export function Footer() {
           <p>&copy; {new Date().getFullYear()} {company.name}. CAC {company.registration.number}.</p>
           <button className="replay" type="button" onClick={() => window.mjPlayIntro?.()}>Replay the opening</button>
         </div>
-        <p className="credit">Stock photography from Pexels and Unsplash; project photos are MOJATECH&apos;s own.</p>
       </div>
     </footer>
   );

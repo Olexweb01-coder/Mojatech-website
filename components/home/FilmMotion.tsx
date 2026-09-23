@@ -91,8 +91,14 @@ export default function FilmMotion() {
 
       ctx = gsap.context(() => {
         const chs = gsap.utils.toArray<HTMLElement>(".ch");
+        /* Motion speed is fixed at the original rate (about 60% of a screen per beat).
+           HOLD adds quiet time between scenes: the movement stays exactly as it was,
+           the visitor simply gets longer to read before the next one starts. */
+        const RATE = 59.6;
+        const HOLD = 1.0;
+        const beats = 2.6 + (chs.length - 1) * (2 + HOLD) + 0.9;
         const film = gsap.timeline({ defaults: { ease: "none" }, scrollTrigger: {
-          trigger: "#film", start: "top top", end: "+=" + (chs.length * 190 + 170) + "%",   /* a longer road, so each scene has time to land */
+          trigger: "#film", start: "top top", end: "+=" + Math.round(beats * RATE) + "%",
           scrub: 0.8, pin: true, anticipatePin: 1,
           onUpdate: () => bld.draw(),
           onToggle: (self) => document.documentElement.classList.toggle("in-film", self.isActive) } });
@@ -106,7 +112,7 @@ export default function FilmMotion() {
             .fromTo(img, { scale: i === 0 ? 1.34 : 1.16 }, { scale: 1.02, duration: 2.4 }, t)
             .fromTo(copy, { autoAlpha: 0, y: 34 }, { autoAlpha: 1, y: 0, stagger: 0.08, duration: 0.45 }, t + 0.45);
           if (i > 0) film.to(prev.querySelectorAll(".ch-copy > *"), { autoAlpha: 0, y: -26, stagger: 0.04, duration: 0.3 }, t - 0.05);
-          t += 2;
+          t += 2 + HOLD;
         });
         film.to(chs[chs.length - 1].querySelectorAll(".ch-copy > *"), { autoAlpha: 0, duration: 0.35 }, t - 0.2)
           .to(".stage", { clipPath: window.innerWidth >= 1040 ? "inset(9% 7% 9% 7% round 32px)" : "inset(8% 4% 8% 4% round 24px)", scale: 0.96, duration: 0.9, ease: "power2.inOut" }, t);
@@ -116,7 +122,7 @@ export default function FilmMotion() {
         if (track) {
           const slide = () => Math.min(0, -(track.scrollWidth - window.innerWidth + 40));
           gsap.to(track, { x: slide, ease: "none", scrollTrigger: { trigger: ".work-strip", start: "center center",
-            end: () => "+=" + Math.max(1, -slide() * 1.5), scrub: 0.6, pin: true, anticipatePin: 1, invalidateOnRefresh: true } });
+            end: () => "+=" + Math.max(1, -slide()), scrub: 0.6, pin: true, anticipatePin: 1, invalidateOnRefresh: true } });
         }
         gsap.utils.toArray<HTMLElement>(".sec-head").forEach((h) =>
           gsap.from(h.children, { autoAlpha: 0, y: 40, stagger: 0.08, duration: 0.8, ease: "power3.out", scrollTrigger: { trigger: h, start: "top 82%" } }));

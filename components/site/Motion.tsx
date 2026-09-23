@@ -17,7 +17,7 @@ export default function SmoothScroll() {
       ]);
       if (off) return;
       gsap.registerPlugin(ScrollTrigger);
-      lenis = new Lenis({ lerp: 0.075, smoothWheel: true, wheelMultiplier: 0.8 });
+      lenis = new Lenis({ lerp: 0.085, smoothWheel: true });
       window.lenisRef = lenis;
       lenis.on("scroll", () => ScrollTrigger.update());
       const engine = lenis;

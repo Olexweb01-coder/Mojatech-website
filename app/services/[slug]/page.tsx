@@ -15,8 +15,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const s = serviceById(slug);
   if (!s) return meta({ title: "Service not found", description: "That service page does not exist.", path: "/services" });
   return meta({
-    title: `${s.name} in Nigeria: ${s.head.replace(/\.$/, "")}`,
-    description: `${s.sub} ${s.includes.slice(0, 3).join(", ")}. MOJATECH Electrical Enterprises, registered since 2019.`,
+    title: `${s.name} in Nigeria`,
+    description: `${s.sub} MOJATECH: registered since 2019, NEMSA certified.`.slice(0, 158),
     path: "/services/" + s.id, image: s.img,
   });
 }

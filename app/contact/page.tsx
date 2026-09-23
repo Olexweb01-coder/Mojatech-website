@@ -5,8 +5,8 @@ import { company } from "@/lib/data/company";
 import { meta } from "@/lib/seo";
 
 export const metadata = meta({
-  title: "Contact MOJATECH: get a quote for electrical, solar or CCTV work",
-  description: "Tell MOJATECH about the job in three short steps, or call 0816 168 3153. Electrical, solar, inverter, CCTV and industrial work anywhere in Nigeria.",
+  title: "Contact us and get a quote",
+  description: "Tell MOJATECH about the job in three short steps, or call 0816 168 3153. Electrical, solar, inverter and CCTV work anywhere in Nigeria.",
   path: "/contact", image: "/stock/contact.webp",
 });
 

@@ -4,8 +4,8 @@ import { work, company } from "@/lib/data/company";
 import { meta } from "@/lib/seo";
 
 export const metadata = meta({
-  title: "Our work: electrical and solar projects across Lagos and Nigeria",
-  description: "Solar at Ibeshe Road, a full electrical project for Flour Mills NG, inverter installation in Ikorodu, and full electrical installations for NRS Lagos and FIRS Lagos.",
+  title: "Our work: electrical and solar projects",
+  description: "Solar at Ibeshe Road, a full electrical project for Flour Mills NG, inverter work in Ikorodu, and installations for NRS and FIRS Lagos.",
   path: "/work", image: "/work/ibeshe-road-solar.jpg",
 });
 

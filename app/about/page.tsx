@@ -4,8 +4,8 @@ import { company, process, why, work } from "@/lib/data/company";
 import { meta } from "@/lib/seo";
 
 export const metadata = meta({
-  title: "About MOJATECH: electrical and solar engineering since 2019",
-  description: "MOJATECH Electrical Enterprises has installed, maintained and backed up power systems since 2019 for homes, businesses and industry across Nigeria. CAC registered, NEMSA certified.",
+  title: "About us: electrical and solar since 2019",
+  description: "MOJATECH has installed, maintained and backed up power systems since 2019 for homes, businesses and industry across Nigeria. NEMSA certified.",
   path: "/about", image: "/stock/about.webp",
 });
 

@@ -30,7 +30,7 @@ a { color: inherit; } img, canvas, svg { display: block; max-width: 100%; } butt
 .btn-line { background: transparent; color: var(--ink); border: 1.5px solid rgba(11,18,56,.2); } .btn-line:hover { border-color: var(--ink); }
 .btn-light { background: rgba(255,255,255,.12); color: #fff; border: 1.5px solid rgba(255,255,255,.45); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); } .btn-light:hover { border-color: #fff; }
 .btn-sm { min-height: 46px; padding: 0 20px; font-size: .95rem; }
-.link { font-weight: 700; color: var(--red); text-decoration: none; display: inline-flex; align-items: center; gap: 8px; }
+.link { font-weight: 700; color: var(--red); text-decoration: none; display: inline-flex; align-items: center; gap: 8px; padding: 10px 2px; }
 .link::after { content: ""; width: 18px; height: 1.5px; background: currentColor; transition: width .2s var(--ease); }
 .link:hover::after { width: 30px; }
 
@@ -123,7 +123,7 @@ html:has(dialog[open]) { overflow: hidden; }
 .trust { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 22px; font-size: .88rem; color: rgba(255,255,255,.8); }
 .trust li { display: flex; align-items: center; gap: 8px; }
 .trust li::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: #3ccf7a; box-shadow: 0 0 10px #3ccf7a; }
-.ch-link { display: inline-flex; align-items: center; gap: 10px; margin-top: 22px; font-weight: 700; color: #fff; text-decoration: none; border-bottom: 2px solid var(--red); padding-bottom: 4px; }
+.ch-link { display: inline-flex; align-items: center; gap: 10px; margin-top: 22px; font-weight: 700; color: #fff; text-decoration: none; border-bottom: 2px solid var(--red); padding: 8px 2px 8px; }
 .stage { height: 100svh; overflow: hidden; }
 .ch { position: absolute; inset: 0; }
 .ch:not(:first-child) { opacity: 0; visibility: hidden; }

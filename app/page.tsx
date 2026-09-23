@@ -5,8 +5,8 @@ import { work, process, why, company } from "@/lib/data/company";
 import { meta } from "@/lib/seo";
 
 export const metadata = meta({
-  title: "MOJATECH Electrical Enterprises | Electrical, solar and security in Nigeria",
-  description: "Electrical installation, solar and inverter backup, CCTV and security, and industrial power for homes, businesses and industry across Nigeria. Registered since 2019, NEMSA certified.",
+  title: "MOJATECH | Electrical, solar and security in Nigeria",
+  description: "Electrical installation, solar and inverter backup, CCTV and industrial power for homes and businesses across Nigeria. CAC registered since 2019.",
   path: "/",
 });
 

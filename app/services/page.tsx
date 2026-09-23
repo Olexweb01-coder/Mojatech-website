@@ -5,8 +5,8 @@ import { services } from "@/lib/data/services";
 import { meta } from "@/lib/seo";
 
 export const metadata = meta({
-  title: "Services: electrical, solar, CCTV and industrial power",
-  description: "Electrical installation, solar and inverter backup, CCTV and security, industrial and low-voltage systems, maintenance, power audits and electrical automation, across Nigeria.",
+  title: "Electrical, solar and CCTV services",
+  description: "Electrical installation, solar and inverter backup, CCTV, industrial power, maintenance, power audits and automation, anywhere in Nigeria.",
   path: "/services", image: "/stock/services.webp",
 });
 

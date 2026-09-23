@@ -23,7 +23,7 @@ export default function PageMotion({ kind = "plain" }: { kind?: Kind }) {
         const reveal = (sel: string, opts: Record<string, unknown> = {}) =>
           gsap.utils.toArray<HTMLElement>(sel).forEach((el) =>
             gsap.from(el, { autoAlpha: 0, y: 40, duration: 0.8, ease: "power3.out",
-              scrollTrigger: { trigger: el, start: "top 86%" }, ...opts }));
+              scrollTrigger: { trigger: el, start: "top 92%", once: true }, ...opts }));
 
         gsap.from(".phero .wrap > *", { autoAlpha: 0, y: 44, stagger: 0.09, duration: 0.9, ease: "power3.out", delay: 0.08 });
         gsap.to(".phero-media img", { scale: 1.14, yPercent: 4, ease: "none",
@@ -104,17 +104,24 @@ export default function PageMotion({ kind = "plain" }: { kind?: Kind }) {
               scrollTrigger: { trigger: p, start: "top 88%" } }));
         }
 
-        /* Nothing may be left invisible on screen. */
-        setTimeout(() => {
+        /* Safety net: whenever scrolling stops, anything still invisible but sitting
+           on screen is simply shown. A missed animation can never leave a blank space. */
+        const rescue = () => {
           document.querySelectorAll<HTMLElement>("main *").forEach((el) => {
             const cs = getComputedStyle(el);
             if (cs.opacity !== "0" && cs.visibility !== "hidden") return;
             const r = el.getBoundingClientRect();
-            if (!r.height || r.top > window.innerHeight * 1.2) return;
-            if (el.closest(".ch:not(:first-child)") || el.closest(".fstep:not(.on)") || el.closest(".sent:not(.on)") || el.closest(".promise-item")) return;
+            if (r.height < 4 || r.top > window.innerHeight * 0.95 || r.bottom < 0) return;
+            if (el.closest(".ch:not(:first-child)") || el.closest(".fstep:not(.on)") || el.closest(".sent:not(.on)")
+              || el.closest(".promise-item") || el.closest(".spreview") || el.classList.contains("bld-on")) return;
             gsap.set(el, { autoAlpha: 1, y: 0, x: 0, clearProps: "clipPath" });
           });
-        }, 1400);
+        };
+        let idle: number | undefined;
+        const onScroll = () => { window.clearTimeout(idle); idle = window.setTimeout(rescue, 260); };
+        window.addEventListener("scroll", onScroll, { passive: true });
+        window.setTimeout(rescue, 1400);
+        return () => { window.removeEventListener("scroll", onScroll); window.clearTimeout(idle); };
       });
       ScrollTrigger.refresh();
     })();

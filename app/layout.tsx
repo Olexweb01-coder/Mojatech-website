@@ -14,10 +14,10 @@ const hanken = Hanken_Grotesk({ subsets: ["latin"], weight: ["400", "500", "600"
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "MOJATECH Electrical Enterprises | Electrical, solar and security in Nigeria",
-    template: "%s | MOJATECH Electrical Enterprises",
+    default: "Electrical, solar and security in Nigeria | MOJATECH",
+    template: "%s | MOJATECH",
   },
-  description: "MOJATECH Electrical Enterprises installs, maintains and backs up electrical, solar and security systems for homes, businesses and industry across Nigeria. Registered since 2019.",
+  description: "Electrical installation, solar and inverter backup, CCTV and industrial power for homes and businesses across Nigeria. CAC registered since 2019.",
   applicationName: company.name,
   keywords: ["MOJATECH", "Mojatech Electrical", "electrician Nigeria", "solar installation Nigeria", "inverter installation Lagos", "CCTV installation Nigeria", "electrical contractor Ogun State"],
   authors: [{ name: company.name }],

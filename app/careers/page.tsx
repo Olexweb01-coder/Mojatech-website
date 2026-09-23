@@ -5,8 +5,8 @@ import { company } from "@/lib/data/company";
 import { meta } from "@/lib/seo";
 
 export const metadata = meta({
-  title: "Careers: internship, apprenticeship, NYSC and SIWES placements",
-  description: "MOJATECH takes on interns, apprentices, NYSC members and industrial training (SIWES) students, and teaches them on live electrical, solar and security jobs across Nigeria.",
+  title: "Careers: internship, NYSC and SIWES",
+  description: "MOJATECH takes on interns, apprentices, NYSC members and SIWES students, teaching them on live electrical, solar and security jobs in Nigeria.",
   path: "/careers", image: "/work/flour-mills-electrical.jpg",
 });
 

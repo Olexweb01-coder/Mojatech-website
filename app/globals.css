@@ -461,3 +461,34 @@ html:has(dialog[open]) { overflow: hidden; }
   .phero .lead { font-size: 1rem; margin-top: 12px; }
   .phero .ctas { margin-top: 16px; }
 }
+
+/* Phones grow the viewport when the address bar slides away. Sections are sized to the
+   largest viewport so no white strip appears, and the words shift up by the bar's height
+   while it is still showing. */
+@supports (height: 100lvh) {
+  .ch, .finale { height: 100lvh; }
+  .stage { height: 100lvh; }
+  .ch-copy { bottom: calc(100lvh - 100svh + clamp(32px, 7vh, 96px)); }
+  .cue { bottom: calc(100lvh - 100svh + clamp(32px, 7vh, 96px)); }
+  .fin-copy { padding-bottom: calc(100lvh - 100svh); }
+  @media (min-width: 1024px) {
+    .ch-copy, .cue { bottom: calc(100lvh - 100svh + 11vh); }
+  }
+}
+/* The bar at the top stays part of the picture for the whole opening film,
+   and only takes its white background once the film is over. */
+html.in-film .hdr.solid {
+  background: transparent;
+  box-shadow: none;
+  color: #fff;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+/* Short windows keep their tighter spacing even with the full-height fix above. */
+@supports (height: 100lvh) {
+  @media (max-height: 620px) and (min-width: 560px) {
+    .ch-copy { bottom: calc(100lvh - 100svh + 18px); }
+    .cue { display: none; }
+  }
+}

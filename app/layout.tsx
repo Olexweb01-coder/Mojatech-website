@@ -34,12 +34,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <Script id="mj-open" strategy="beforeInteractive">{`
           (function () {
-            var root = document.documentElement, show = false;
+            var root = document.documentElement;
+            if (root.hasAttribute("data-intro")) return;   /* decide once, never twice */
+            var show = false;
             var calm = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
             try {
+              var seen = sessionStorage.getItem("mj-intro-shown") === "1";
               var k = "mj-last-visit", last = Number(localStorage.getItem(k)) || 0, now = Date.now();
-              show = now - last > 600000 && !calm && location.pathname === "/";
+              show = !seen && !calm && location.pathname === "/" && now - last > 600000;
               localStorage.setItem(k, String(now));
+              if (show) sessionStorage.setItem("mj-intro-shown", "1");
             } catch (e) {}
             root.setAttribute("data-intro", show ? "on" : "off");
           })();

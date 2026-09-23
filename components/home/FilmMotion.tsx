@@ -92,8 +92,10 @@ export default function FilmMotion() {
       ctx = gsap.context(() => {
         const chs = gsap.utils.toArray<HTMLElement>(".ch");
         const film = gsap.timeline({ defaults: { ease: "none" }, scrollTrigger: {
-          trigger: "#film", start: "top top", end: "+=" + (chs.length * 115 + 110) + "%",
-          scrub: 0.8, pin: true, anticipatePin: 1, onUpdate: () => bld.draw() } });
+          trigger: "#film", start: "top top", end: "+=" + (chs.length * 190 + 170) + "%",   /* a longer road, so each scene has time to land */
+          scrub: 0.8, pin: true, anticipatePin: 1,
+          onUpdate: () => bld.draw(),
+          onToggle: (self) => document.documentElement.classList.toggle("in-film", self.isActive) } });
         film.to(bld, { p: 1.08, duration: 2.2, onUpdate: () => bld.draw() }, 0)
           .to(bld, { zoom: 1.5, duration: 3, ease: "power1.in", onUpdate: () => bld.draw() }, 0)
           .to(".ch-hero .ch-copy", { autoAlpha: 0, y: -30, duration: 0.45 }, 2.35);
@@ -114,7 +116,7 @@ export default function FilmMotion() {
         if (track) {
           const slide = () => Math.min(0, -(track.scrollWidth - window.innerWidth + 40));
           gsap.to(track, { x: slide, ease: "none", scrollTrigger: { trigger: ".work-strip", start: "center center",
-            end: () => "+=" + Math.max(1, -slide()), scrub: 0.6, pin: true, anticipatePin: 1, invalidateOnRefresh: true } });
+            end: () => "+=" + Math.max(1, -slide() * 1.5), scrub: 0.6, pin: true, anticipatePin: 1, invalidateOnRefresh: true } });
         }
         gsap.utils.toArray<HTMLElement>(".sec-head").forEach((h) =>
           gsap.from(h.children, { autoAlpha: 0, y: 40, stagger: 0.08, duration: 0.8, ease: "power3.out", scrollTrigger: { trigger: h, start: "top 82%" } }));
@@ -140,6 +142,7 @@ export default function FilmMotion() {
     wake.forEach((ev) => window.addEventListener(ev, start, { passive: true }));
     return () => {
       wake.forEach((ev) => window.removeEventListener(ev, start));
+      document.documentElement.classList.remove("in-film");
       ST?.getAll().forEach((t) => t.kill(true));
       ctx?.revert();
     };

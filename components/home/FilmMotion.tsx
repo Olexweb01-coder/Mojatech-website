@@ -16,7 +16,6 @@ export default function FilmMotion() {
       if (started) return;
       started = true;
       wake.forEach((ev) => window.removeEventListener(ev, start));
-      window.clearTimeout(idle);
       const { gsap } = await import("gsap");
       const { ScrollTrigger } = await import("gsap/ScrollTrigger");
       gsap.registerPlugin(ScrollTrigger);
@@ -139,9 +138,7 @@ export default function FilmMotion() {
     };
     const wake = ["scroll", "wheel", "touchstart", "pointermove", "keydown"] as const;
     wake.forEach((ev) => window.addEventListener(ev, start, { passive: true }));
-    const idle = window.setTimeout(start, 2500);
     return () => {
-      window.clearTimeout(idle);
       wake.forEach((ev) => window.removeEventListener(ev, start));
       ST?.getAll().forEach((t) => t.kill(true));
       ctx?.revert();

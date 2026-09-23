@@ -40,7 +40,7 @@ export default function Film() {
           <article className="ch" id={"ch-" + s.id} key={s.id}>
             <div className="ch-media">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={s.img} alt={s.name} style={{ objectPosition: s.pos }} loading="lazy" />
+              <img src={s.img} alt={s.name} style={{ objectPosition: s.pos }} loading="lazy" decoding="async" fetchPriority="low" />
             </div>
             <div className="ch-shade" />
             <div className="ch-copy">

@@ -4,7 +4,7 @@ import { Hanken_Grotesk } from "next/font/google";
 import "./globals.css";
 import { Header, Footer } from "@/components/site/Chrome";
 import Intro from "@/components/site/Intro";
-import Arik from "@/components/site/Arik";
+import ArikLoader from "@/components/site/ArikLoader";
 import SmoothScroll, { RouteReset } from "@/components/site/Motion";
 import { company } from "@/lib/data/company";
 import { businessSchema, siteUrl } from "@/lib/seo";
@@ -53,7 +53,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Header />
         <main id="main">{children}</main>
         <Footer />
-        <Arik />
+        <ArikLoader />
         <SmoothScroll />
         <RouteReset />
       </body>

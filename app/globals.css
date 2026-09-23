@@ -14,6 +14,9 @@ body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(
 h1, h2, h3, p, ul, ol, figure, dl { margin: 0; } ul, ol { padding: 0; list-style: none; }
 a { color: inherit; } img, canvas, svg { display: block; max-width: 100%; } button, input, select, textarea { font: inherit; color: inherit; }
 :focus-visible { outline: 3px solid #8c97ff; outline-offset: 3px; border-radius: 8px; }
+/* Keyboard users can jump straight to the content; everyone else never sees this. */
+.skip-link { position: absolute; left: -9999px; top: 0; z-index: 100; padding: 12px 18px; border-radius: 10px; background: var(--red); color: #fff; font-weight: 700; text-decoration: none; }
+.skip-link:focus { left: 16px; top: 16px; }
 .wrap { width: min(100% - 2 * var(--gutter), 1280px); margin-inline: auto; }
 .narrow { width: min(100% - 2 * var(--gutter), 900px); margin-inline: auto; }
 .kicker { font-weight: 700; font-size: 0.95rem; color: var(--red); letter-spacing: 0.01em; }
@@ -138,8 +141,8 @@ html:has(dialog[open]) { overflow: hidden; }
 /* work strip */
 .work-strip { overflow: hidden; }
 .track { display: flex; gap: 20px; padding: 0 var(--gutter); }
-.card { position: relative; flex: 0 0 auto; width: clamp(240px, 66vw, 380px); aspect-ratio: 4/5; border-radius: 24px; overflow: hidden; background: var(--mist); box-shadow: 0 30px 60px -35px rgba(11,18,56,.6); }
-.card--wide { width: clamp(300px, 84vw, 620px); aspect-ratio: 4/3.2; }
+.card { position: relative; flex: 0 0 auto; height: min(74svh, 475px); width: auto; aspect-ratio: 4/5; border-radius: 24px; overflow: hidden; background: var(--mist); box-shadow: 0 30px 60px -35px rgba(11,18,56,.6); }
+.card--wide { height: min(74svh, 484px); width: auto; aspect-ratio: 4/3.2; }
 .card img { width: 100%; height: 100%; object-fit: cover; }
 .card figcaption { position: absolute; left: 12px; right: 12px; bottom: 12px; padding: 13px 15px; border-radius: 16px; background: rgba(255,255,255,.92); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
 .card b { display: block; font-size: 1.05rem; } .card span { font-size: .9rem; color: var(--ink-2); }
@@ -219,7 +222,7 @@ html:has(dialog[open]) { overflow: hidden; }
 .wgrid { display: grid; gap: 20px; margin-top: 44px; }
 @media (min-width: 700px) { .wgrid { grid-template-columns: repeat(2, minmax(0,1fr)); } }
 @media (min-width: 1100px) { .wgrid { grid-template-columns: repeat(3, minmax(0,1fr)); } }
-.wcard { position: relative; border-radius: 22px; overflow: hidden; aspect-ratio: 4/5; background: var(--mist); }
+.wcard { position: relative; border-radius: 22px; overflow: hidden; aspect-ratio: 4/5; max-height: 74svh; background: var(--mist); }
 .wcard img { width: 100%; height: 100%; object-fit: cover; transition: scale .8s var(--ease); }
 .wcard:hover img { scale: 1.05; }
 .wcard figcaption { position: absolute; left: 12px; right: 12px; bottom: 12px; padding: 14px 16px; border-radius: 16px; background: rgba(255,255,255,.93); }
@@ -439,4 +442,22 @@ html:has(dialog[open]) { overflow: hidden; }
   .work { height: auto; display: block; padding: 0; }
   .work .hs { height: auto; }
   .work .card { max-height: none; }
+}
+
+/* Short windows (a browser panel inside an editor, or a phone on its side):
+   the hero shrinks so the headline, the sentence and the buttons all fit. */
+@media (max-height: 620px) and (min-width: 560px) {
+  .ch-copy { bottom: 18px; max-width: 62%; }
+  .ch-copy .h1 { font-size: clamp(1.7rem, 4.4vw, 2.6rem); }
+  .ch-copy .h2 { font-size: clamp(1.5rem, 3.6vw, 2.2rem); }
+  .ch-copy p { font-size: .95rem; margin-top: 10px; }
+  .ch-copy .ctas { margin-top: 14px; }
+  .ch-copy .btn { min-height: 44px; padding: 0 18px; }
+  .trust { margin-top: 12px; font-size: .8rem; gap: 6px 14px; }
+  .eyebrow { font-size: .8rem; }
+  .cue { display: none; }
+  .phero { min-height: 100svh; padding-top: calc(var(--header) + 28px); padding-bottom: 26px; }
+  .phero .h1 { font-size: clamp(1.8rem, 4.6vw, 2.8rem); }
+  .phero .lead { font-size: 1rem; margin-top: 12px; }
+  .phero .ctas { margin-top: 16px; }
 }

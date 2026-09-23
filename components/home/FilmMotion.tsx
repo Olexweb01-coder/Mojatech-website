@@ -95,7 +95,7 @@ export default function FilmMotion() {
            HOLD adds quiet time between scenes: the movement stays exactly as it was,
            the visitor simply gets longer to read before the next one starts. */
         const RATE = 59.6;
-        const HOLD = 1.0;
+        const HOLD = 0.3;
         const beats = 2.6 + (chs.length - 1) * (2 + HOLD) + 0.9;
         const film = gsap.timeline({ defaults: { ease: "none" }, scrollTrigger: {
           trigger: "#film", start: "top top", end: "+=" + Math.round(beats * RATE) + "%",

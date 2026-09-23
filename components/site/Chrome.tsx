@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -76,7 +76,7 @@ export function Header() {
         onClick={(e) => { if (e.target === menu.current) closeMenu(); }}>
         <div className="menu-bg">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/stock/house-on-900.webp" alt="" loading="lazy" />
+          <img src="/stock/house-on.webp" alt="" loading="lazy" />
         </div>
         <div className="menu-in">
           <div className="menu-top">

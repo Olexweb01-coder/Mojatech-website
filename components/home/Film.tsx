@@ -14,12 +14,12 @@ export default function Film() {
         <article className="ch ch-hero" id="ch-home">
           <div className="ch-media">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img className="bld-off" src="/stock/house-off-900.webp" width={1600} height={1066} alt=""
-              srcSet="/stock/house-off-900.webp 900w, /stock/house-off.webp 1600w" sizes="(max-width: 1023px) 50vw, 100vw" fetchPriority="high" />
+            <img className="bld-off" src="/stock/house-off.webp" width={1600} height={1066} alt=""
+               fetchPriority="high" />
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img className="bld-on" src="/stock/house-on-900.webp" width={1600} height={1066}
+            <img className="bld-on" src="/stock/house-on.webp" width={1600} height={1066}
               alt="A two-storey house at dusk with its windows and porch lights on"
-              srcSet="/stock/house-on-900.webp 900w, /stock/house-on.webp 1600w" sizes="(max-width: 1023px) 50vw, 100vw" fetchPriority="low" />
+               fetchPriority="low" />
             <canvas className="bld-gl" aria-hidden="true" />
           </div>
           <div className="ch-shade" />

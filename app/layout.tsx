@@ -48,7 +48,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             root.setAttribute("data-intro", show ? "on" : "off");
           })();
         `}</Script>
-        <link rel="preload" as="image" href="/stock/house-off-900.webp" fetchPriority="high" />
+        <link rel="preload" as="image" href="/stock/house-off.webp" fetchPriority="high" />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(businessSchema()) }} />
       </head>
       <body>

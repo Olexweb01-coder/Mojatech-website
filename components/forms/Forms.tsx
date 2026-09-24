@@ -117,7 +117,7 @@ export function CareersForm() {
       <div className={"sent" + (s.sent ? " on" : "")}>
         <div className="tick" />
         <h3>Thank you. Your application is in.</h3>
-        <p className="lead" style={{ marginTop: 10 }}>You can also email your CV to {company.contact.email}.</p>
+        <p className="lead" style={{ marginTop: 10 }}>You can also email your CV to {company.contact.emailHr}.</p>
       </div>
     </form>
   );

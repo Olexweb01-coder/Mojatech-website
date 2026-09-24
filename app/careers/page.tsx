@@ -60,7 +60,7 @@ export default function Careers() {
             <h2 className="h2">Send your details.</h2>
             <p className="lead" style={{ marginTop: 16 }}>Tell us which programme you want, your school or institution, and when you can start. If nothing is open now, we keep your details for the next intake.</p>
             <div className="cinfo" style={{ marginTop: 26 }}>
-              <a href={"mailto:" + company.contact.email}>{company.contact.email}<small>Or send your CV by email</small></a>
+              <a href={"mailto:" + company.contact.emailHr}>{company.contact.emailHr}<small>Or send your CV by email</small></a>
               <a href={WA} target="_blank" rel="noopener noreferrer">WhatsApp {company.contact.phoneDisplay}<small>Fastest reply</small></a>
             </div>
           </div>

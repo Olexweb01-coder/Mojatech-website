@@ -13,7 +13,7 @@ type Brain = {
   leadReply: (q: string) => Reply | null;
   wantsQuote: (q: string) => boolean;
   newQuestion: (q: string) => boolean;
-  state: { on: boolean; step: number };
+  state: { on: boolean; step: number; service: string };
 };
 type Msg = { who: "a" | "u"; text: string; links?: Link[] };
 
@@ -57,7 +57,8 @@ export default function Arik() {
     const b = brain.current as Brain;
     window.setTimeout(() => {
       let resume = "";
-      if (b.state.on && b.newQuestion(text)) {
+      /* Only a real question interrupts the quote conversation; a short answer is taken as an answer. */
+      if (b.state.on && text.includes("?")) {
         resume = b.state.step === 1 ? "\n\nBack to your quote: tell me in one line what you need done."
           : b.state.step === 2 ? "\n\nBack to your quote: which area is the building in?"
           : "\n\nBack to your quote: what number should we call or WhatsApp you on?";
@@ -66,8 +67,9 @@ export default function Arik() {
       if (!r) {
         r = b.answer(text);
         if (!b.state.on && b.wantsQuote(text) && r.hit) {
-          b.state.on = true; b.state.step = 1;
-          r = { text: r.text + "\n\nShall we get it moving? Tell me in one line what you need done.", links: [] };
+          /* What they just asked for is the job; start from the area instead of asking twice. */
+          b.state.on = true; b.state.step = 2; b.state.service = text;
+          r = { text: r.text + "\n\nShall we get it moving? Which area is the building in?", links: [] };
         }
         if (!r.hit) {
           try {

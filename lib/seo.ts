@@ -7,7 +7,7 @@ export const siteUrl = company.url;
 /** Every page gets its own title, description and canonical address. */
 export function meta({ title, description, path, image = "/stock/house-on.webp" }:
   { title: string; description: string; path: string; image?: string }): Metadata {
-  const url = siteUrl + (path === "/" ? "" : path);
+  const url = siteUrl + path;   /* the home page keeps its trailing slash, matching the sitemap */
   return {
     title,
     description,

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { company } from "@/lib/data/company";
+import { services as SERVICE_LIST } from "@/lib/data/services";
 
 export const siteUrl = company.url;
 
@@ -37,5 +38,34 @@ export function businessSchema() {
     sameAs: [...company.social],
     identifier: { "@type": "PropertyValue", name: "CAC business registration", value: company.registration.number },
     knowsAbout: ["Electrical installation", "Solar power", "Inverter and battery backup", "CCTV and security systems", "Industrial electrical work", "Power audits", "Electrical automation"],
+    contactPoint: [
+      { "@type": "ContactPoint", contactType: "customer service", telephone: company.contact.phone, email: company.contact.email, areaServed: "NG", availableLanguage: "English" },
+      { "@type": "ContactPoint", contactType: "human resources", email: company.contact.emailHr, areaServed: "NG", availableLanguage: "English" },
+    ],
+    hasCredential: [
+      { "@type": "EducationalOccupationalCredential", credentialCategory: "Business registration",
+        recognizedBy: { "@type": "Organization", name: "Corporate Affairs Commission of Nigeria" }, identifier: company.registration.number },
+      { "@type": "EducationalOccupationalCredential", credentialCategory: "Electrical installation competency, Category C",
+        recognizedBy: { "@type": "Organization", name: "Nigerian Electricity Management Services Agency (NEMSA)" } },
+    ],
+    makesOffer: SERVICE_LIST.map((s) => ({
+      "@type": "Offer",
+      itemOffered: { "@type": "Service", name: s.name, description: s.sub, url: siteUrl + "/services/" + s.id },
+      areaServed: { "@type": "Country", name: company.areaServed },
+    })),
+  };
+}
+
+/** Marks the site itself, so assistants can name the publisher of every page. */
+export function siteSchema() {
+  return {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "@id": siteUrl + "/#website",
+    url: siteUrl,
+    name: company.name,
+    inLanguage: "en-NG",
+    publisher: { "@id": siteUrl + "/#business" },
+    about: { "@id": siteUrl + "/#business" },
   };
 }

@@ -7,7 +7,7 @@ import Intro from "@/components/site/Intro";
 import ArikLoader from "@/components/site/ArikLoader";
 import SmoothScroll, { RouteReset } from "@/components/site/Motion";
 import { company } from "@/lib/data/company";
-import { businessSchema, siteUrl } from "@/lib/seo";
+import { businessSchema, siteSchema, siteUrl } from "@/lib/seo";
 
 const hanken = Hanken_Grotesk({ subsets: ["latin"], weight: ["400", "500", "600", "700", "800"], display: "swap", variable: "--font-hanken" });
 
@@ -50,6 +50,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         `}</Script>
         <link rel="preload" as="image" href="/stock/house-off.webp" fetchPriority="high" />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(businessSchema()) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(siteSchema()) }} />
+        <link rel="alternate" type="text/plain" href={siteUrl + "/llms.txt"} title="Plain summary for AI assistants" />
       </head>
       <body>
         <a href="#main" className="skip-link">Skip to content</a>

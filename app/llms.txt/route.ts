@@ -1,5 +1,6 @@
 import { company, process, work } from "@/lib/data/company";
 import { services } from "@/lib/data/services";
+import { products, naira } from "@/lib/data/products";
 import { siteUrl } from "@/lib/seo";
 
 export const dynamic = "force-static";
@@ -31,6 +32,9 @@ export function GET() {
     "",
     "## How every job runs",
     ...process.map(([step, detail], i) => `${i + 1}. ${step}: ${detail}`),
+    "",
+    "## Products for sale",
+    ...products.map((p) => `- **${p.name}** (${siteUrl}/products/${p.slug}): ${naira(p.price)}. ${p.short}${p.freeDelivery ? " Free delivery." : ""}`),
     "",
     "## Projects",
     ...work.map((w) => `- ${w.title}: ${w.type}.`),

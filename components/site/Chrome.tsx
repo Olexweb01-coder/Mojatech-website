@@ -7,6 +7,7 @@ import { company } from "@/lib/data/company";
 const NAV = [
   { href: "/about", label: "About", sub: "Who we are, and how we work" },
   { href: "/services", label: "Services", sub: "Seven services, one team" },
+  { href: "/products", label: "Products", sub: "Inverters, batteries, panels, cameras" },
   { href: "/work", label: "Our work", sub: "Real sites and installations" },
   { href: "/careers", label: "Careers", sub: "Internship, apprenticeship, NYSC, IT" },
   { href: "/contact", label: "Contact", sub: "Tell us about the job" },
@@ -111,7 +112,7 @@ export function Footer() {
           </div>
           <div>
             <nav className="ftr-links" aria-label="Footer">
-              <Link href="/services">Services</Link><Link href="/work">Our work</Link>
+              <Link href="/services">Services</Link><Link href="/products">Products</Link><Link href="/work">Our work</Link>
               <Link href="/about">About</Link><Link href="/careers">Careers</Link><Link href="/contact">Contact</Link>
             </nav>
             <div className="ftr-reach" style={{ marginTop: 16 }}>

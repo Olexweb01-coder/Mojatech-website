@@ -1,17 +1,28 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import PageMotion from "@/components/site/PageMotion";
-import { products, productBySlug, naira, saving } from "@/lib/data/products";
+import { products as samples, naira, saving } from "@/lib/data/products";
+import { listProducts, getProduct } from "@/lib/store";
 import { company } from "@/lib/data/company";
-import { meta, siteUrl } from "@/lib/seo";
+import { meta, siteUrl, jsonLd } from "@/lib/seo";
 
-export function generateStaticParams() {
-  return products.map((p) => ({ slug: p.slug }));
+export const revalidate = 60;
+export const dynamicParams = true;
+
+/* Build the pages for whatever is in the catalogue at build time; anything added
+   later from the admin renders on demand and is then kept for a minute. */
+export async function generateStaticParams() {
+  try {
+    const all = await listProducts();
+    return all.map((p) => ({ slug: p.slug }));
+  } catch {
+    return samples.map((p) => ({ slug: p.slug }));
+  }
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const p = productBySlug(slug);
+  const p = await getProduct(slug);
   if (!p) return meta({ title: "Product not found", description: "That product does not exist.", path: "/products" });
   return meta({
     title: `${p.name} — ${naira(p.price)}`,
@@ -23,9 +34,10 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const p = productBySlug(slug);
+  const p = await getProduct(slug);
   if (!p) notFound();
-  const others = products.filter((x) => x.slug !== p.slug).slice(0, 3);
+  const all = await listProducts();
+  const others = all.filter((x) => x.slug !== p.slug).slice(0, 3);
   const order = company.contact.whatsapp + "?text=" + encodeURIComponent(
     `Hello MOJATECH, I would like to order: ${p.name} (${naira(p.price)}). Please tell me the next step.`);
 
@@ -58,7 +70,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(schema) }} />
       <PageMotion kind="plain" />
 
       <section className="sec pdetail">

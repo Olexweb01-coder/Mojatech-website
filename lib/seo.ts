@@ -4,6 +4,17 @@ import { services as SERVICE_LIST } from "@/lib/data/services";
 
 export const siteUrl = company.url;
 
+/** Turns data into a safe string for a script tag. A product named with "</script>"
+ *  would otherwise close the tag and run whatever followed it. */
+export function jsonLd(data: unknown) {
+  return JSON.stringify(data)
+    .replace(/</g, "\\u003c")
+    .replace(/>/g, "\\u003e")
+    .replace(/&/g, "\\u0026")
+    .replace(/\u2028/g, "\\u2028")
+    .replace(/\u2029/g, "\\u2029");
+}
+
 /** Every page gets its own title, description and canonical address. */
 export function meta({ title, description, path, image = "/stock/house-on.webp" }:
   { title: string; description: string; path: string; image?: string }): Metadata {

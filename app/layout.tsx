@@ -6,8 +6,9 @@ import { Header, Footer } from "@/components/site/Chrome";
 import Intro from "@/components/site/Intro";
 import ArikLoader from "@/components/site/ArikLoader";
 import SmoothScroll, { RouteReset } from "@/components/site/Motion";
+import AppInstall from "@/components/site/AppInstall";
 import { company } from "@/lib/data/company";
-import { businessSchema, siteSchema, siteUrl } from "@/lib/seo";
+import { businessSchema, siteSchema, siteUrl, jsonLd } from "@/lib/seo";
 
 const hanken = Hanken_Grotesk({ subsets: ["latin"], weight: ["400", "500", "600", "700", "800"], display: "swap", variable: "--font-hanken" });
 
@@ -23,7 +24,8 @@ export const metadata: Metadata = {
   authors: [{ name: company.name }],
   creator: company.name,
   robots: { index: true, follow: true },
-  icons: { icon: "/brand/mojatech-mark.png" },
+  icons: { icon: "/brand/mojatech-mark.png", apple: "/icon-192.png" },
+  appleWebApp: { capable: true, title: "MOJATECH", statusBarStyle: "black-translucent" },
 };
 
 export const viewport: Viewport = { themeColor: "#05081f", width: "device-width", initialScale: 1, viewportFit: "cover" };
@@ -49,8 +51,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           })();
         `}</Script>
         <link rel="preload" as="image" href="/stock/house-off.webp" fetchPriority="high" />
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(businessSchema()) }} />
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(siteSchema()) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(businessSchema()) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(siteSchema()) }} />
         <link rel="alternate" type="text/plain" href={siteUrl + "/llms.txt"} title="Plain summary for AI assistants" />
       </head>
       <body>
@@ -61,6 +63,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Footer />
         <ArikLoader />
         <SmoothScroll />
+        <AppInstall />
         <RouteReset />
       </body>
     </html>

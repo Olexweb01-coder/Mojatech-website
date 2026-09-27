@@ -1,10 +1,11 @@
 import type { MetadataRoute } from "next";
 import { services } from "@/lib/data/services";
-import { products } from "@/lib/data/products";
+import { listProducts } from "@/lib/store";
 import { siteUrl } from "@/lib/seo";
 
 /** Plain dates and a trailing slash on the home page: the format every search engine accepts. */
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const products = await listProducts();
   const day = new Date().toISOString().slice(0, 10);
   const pages = ["/", "/about", "/services", "/products", "/work", "/careers", "/contact"];
   return [

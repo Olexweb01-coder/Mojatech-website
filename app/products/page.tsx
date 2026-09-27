@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { Hero, Ctas, WA } from "@/components/site/Bits";
 import PageMotion from "@/components/site/PageMotion";
-import { products, categories, naira, saving } from "@/lib/data/products";
-import { meta, siteUrl } from "@/lib/seo";
+import { categories, naira, saving } from "@/lib/data/products";
+import { listProducts } from "@/lib/store";
+import { meta, siteUrl, jsonLd } from "@/lib/seo";
 
 export const metadata = meta({
   title: "Products: inverters, batteries, solar panels and CCTV",
@@ -10,7 +11,10 @@ export const metadata = meta({
   path: "/products", image: "/stock/solar-roof.webp",
 });
 
-export default function Products() {
+export const revalidate = 60;
+
+export default async function Products() {
+  const products = await listProducts();
   const schema = {
     "@context": "https://schema.org",
     "@type": "ItemList",
@@ -22,7 +26,7 @@ export default function Products() {
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(schema) }} />
       <PageMotion kind="work" />
       <Hero kicker="Products" head="Supplied, installed and tested."
         lead="Inverters, batteries, panels, street lights, cameras and stabilisers. Every price includes the part MOJATECH is known for: the installation done properly."

@@ -26,6 +26,7 @@ function Badge() {
 export function Header() {
   const menu = useRef<HTMLDialogElement>(null);
   const path = usePathname();
+  const admin = path.startsWith("/admin");
   const router = useRouter();
 
   useEffect(() => {
@@ -51,6 +52,8 @@ export function Header() {
     const l = window.lenisRef;
     if (l) l.scrollTo(0, { duration: 1.2 }); else window.scrollTo({ top: 0, behavior: "smooth" });
   };
+
+  if (admin) return null;
 
   return (
     <>
@@ -101,6 +104,8 @@ export function Header() {
 }
 
 export function Footer() {
+  const path = usePathname();
+  if (path.startsWith("/admin")) return null;
   return (
     <footer className="ftr">
       <div className="wrap">

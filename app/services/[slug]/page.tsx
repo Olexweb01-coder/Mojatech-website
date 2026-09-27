@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { Hero, Ctas, WA } from "@/components/site/Bits";
 import PageMotion from "@/components/site/PageMotion";
 import { services, serviceById } from "@/lib/data/services";
-import { meta, siteUrl } from "@/lib/seo";
+import { meta, siteUrl, jsonLd } from "@/lib/seo";
 import { company } from "@/lib/data/company";
 
 export function generateStaticParams() {
@@ -44,7 +44,7 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(schema) }} />
       <PageMotion kind="service" />
       <Hero kicker={s.name} head={s.head} lead={s.sub} img={s.img} pos={s.pos} ctas={<Ctas secondary={["WhatsApp us", WA]} light />} />
 

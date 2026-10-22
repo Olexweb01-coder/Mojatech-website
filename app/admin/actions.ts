@@ -1,169 +1,98 @@
 "use server";
 
-import { cookies, headers } from "next/headers";
-import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { createHmac, timingSafeEqual } from "crypto";
-import { saveProduct, deleteProduct, seedSamples, dbConfigured, type ProductInput } from "@/lib/store";
+import { sql, dbConfigured } from "@/lib/store";
+import { hashIp } from "@/lib/enquiries";
+import { same, checkPassword, startSession, endSession, logActivity } from "@/lib/admin-auth";
 
-/* A single password, kept in the server's settings, never in the code.
- * The cookie is signed, so it cannot be forged, and expires after a week. */
+/* Signing in and out of the admin.
+ *
+ * Guessing is slowed down after each miss and stopped for 15 minutes after 6,
+ * counted both per device and per email address. Kept in the database, so it
+ * holds across every server Vercel runs. */
 
-const COOKIE = "mj-admin";
-const WEEK = 60 * 60 * 24 * 7;
-
-/* Guessing is made slow and then stopped. Held in memory, so it resets when the
- * server restarts: enough to defeat automated guessing, and paired with a long
- * password that is what matters. */
-const attempts = new Map<string, { count: number; until: number }>();
 const LOCK_AFTER = 6;
-const LOCK_FOR = 15 * 60 * 1000;
+const LOCK_MINUTES = 15;
+const memory = new Map<string, { count: number; until: number }>();   /* only when there is no database */
 
-async function clientKey() {
-  const h = await headers();
-  return (h.get("x-forwarded-for") || "unknown").split(",")[0].trim();
+async function locked(keys: string[]) {
+  if (!dbConfigured()) return keys.some((k) => (memory.get(k)?.until || 0) > Date.now());
+  const rows = await sql<{ n: string }>("SELECT count(*)::text AS n FROM login_attempts WHERE key = ANY($1) AND locked_until > now()", [keys]).catch(() => [{ n: "0" }]);
+  return Number(rows[0].n) > 0;
 }
 
-const secret = () => process.env.ADMIN_SECRET || process.env.ADMIN_PASSWORD || "";
-
-function sign(value: string) {
-  return createHmac("sha256", secret()).update(value).digest("hex");
+async function miss(keys: string[]) {
+  let worst = 0;
+  for (const k of keys) {
+    if (!dbConfigured()) {
+      const c = (memory.get(k)?.count || 0) + 1;
+      memory.set(k, { count: c, until: c >= LOCK_AFTER ? Date.now() + LOCK_MINUTES * 60000 : 0 });
+      worst = Math.max(worst, c);
+      continue;
+    }
+    const rows = await sql<{ count: number }>(
+      `INSERT INTO login_attempts (key, count, updated_at) VALUES ($1, 1, now())
+       ON CONFLICT (key) DO UPDATE SET
+         count = CASE WHEN login_attempts.updated_at < now() - interval '1 hour' THEN 1 ELSE login_attempts.count + 1 END,
+         updated_at = now()
+       RETURNING count`, [k]).catch(() => [{ count: 1 }]);
+    const c = rows[0].count;
+    if (c >= LOCK_AFTER) await sql(`UPDATE login_attempts SET locked_until = now() + interval '${LOCK_MINUTES} minutes', count = 0 WHERE key = $1`, [k]).catch(() => {});
+    worst = Math.max(worst, c);
+  }
+  await new Promise((r) => setTimeout(r, 400 + worst * 250));
+  return worst >= LOCK_AFTER;
 }
-function same(a: string, b: string) {
-  const x = Buffer.from(a), y = Buffer.from(b);
-  return x.length === y.length && timingSafeEqual(x, y);
-}
 
-export async function isSignedIn() {
-  if (!process.env.ADMIN_PASSWORD) return false;
-  const jar = await cookies();
-  const raw = jar.get(COOKIE)?.value;
-  if (!raw) return false;
-  const [issued, mac] = raw.split(".");
-  if (!issued || !mac) return false;
-  if (Number(issued) + WEEK * 1000 < Date.now()) return false;
-  try { return same(mac, sign(issued)); } catch { return false; }
+async function clear(keys: string[]) {
+  if (!dbConfigured()) { keys.forEach((k) => memory.delete(k)); return; }
+  await sql("DELETE FROM login_attempts WHERE key = ANY($1)", [keys]).catch(() => {});
 }
 
 export async function signIn(_prev: unknown, form: FormData) {
-  const password = String(form.get("password") || "");
-  const expected = process.env.ADMIN_PASSWORD || "";
-  if (!expected) return { error: "No password is set on the server yet. Add ADMIN_PASSWORD in Vercel." };
+  const email = String(form.get("email") || "").trim().toLowerCase().slice(0, 160);
+  const password = String(form.get("password") || "").slice(0, 200);
+  const h = await headers();
+  const device = "ip:" + hashIp((h.get("x-forwarded-for") || "unknown").split(",")[0].trim());
+  const keys = email ? [device, "email:" + email] : [device];
+  const tooMany = "Too many attempts. Wait 15 minutes, then try again.";
 
-  const who = await clientKey();
-  const record = attempts.get(who);
-  if (record && record.until > Date.now()) {
-    return { error: "Too many attempts. Try again in a few minutes." };
+  if (await locked(keys)) return { error: tooMany };
+  if (!password) return { error: "Enter your password." };
+
+  let userId: string | null = null;
+  let mustChange = false;
+  let ok = false;
+
+  if (!email) {
+    /* The master password from Vercel. */
+    const master = process.env.ADMIN_PASSWORD || "";
+    if (!master) return { error: "Enter your email address." };
+    ok = same(password, master);
+  } else if (dbConfigured()) {
+    const rows = await sql<{ id: string; password_hash: string; active: boolean; must_change: boolean }>(
+      "SELECT id, password_hash, active, must_change FROM users WHERE email = $1", [email]).catch(() => []);
+    const u = rows[0];
+    /* Check a password even when the email is unknown, so the time taken does not reveal which emails exist. */
+    const good = await checkPassword(password, u?.password_hash || "scrypt$AAAAAAAAAAAAAAAAAAAAAA==$" + "A".repeat(86) + "==");
+    if (u && good && u.active) { ok = true; userId = String(u.id); mustChange = u.must_change; }
+    else if (u && good && !u.active) return { error: "This account has been switched off. Ask the owner." };
   }
-  if (password.length < 1 || !same(password, expected)) {
-    const count = (record?.count || 0) + 1;
-    attempts.set(who, { count, until: count >= LOCK_AFTER ? Date.now() + LOCK_FOR : 0 });
-    await new Promise((r) => setTimeout(r, 400 + count * 200));   /* slow every guess down */
-    return { error: count >= LOCK_AFTER ? "Too many attempts. Try again in a few minutes." : "That password is not right." };
+
+  if (!ok) {
+    const nowLocked = await miss(keys);
+    return { error: nowLocked ? tooMany : email ? "That email and password do not match." : "That password is not right." };
   }
-  attempts.delete(who);
-  const issued = String(Date.now());
-  const jar = await cookies();
-  jar.set(COOKIE, `${issued}.${sign(issued)}`, {
-    httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", path: "/", maxAge: WEEK,
-  });
-  redirect("/admin");
+
+  await clear(keys);
+  await startSession(userId, h.get("user-agent") || "");
+  if (userId) await sql("UPDATE users SET last_login_at = now() WHERE id = $1", [userId]).catch(() => {});
+  await logActivity("Signed in");
+  redirect(mustChange ? "/admin/account?first=1" : "/admin");
 }
 
 export async function signOut() {
-  const jar = await cookies();
-  jar.delete(COOKIE);
+  await endSession();
   redirect("/admin/login");
-}
-
-/** Everything a product page shows, taken from the form. */
-function readForm(form: FormData): ProductInput {
-  const lines = (key: string) =>
-    String(form.get(key) || "").split("\n").map((l) => l.trim()).filter(Boolean);
-  const specs = lines("specs").map((l) => {
-    const [k, ...rest] = l.split(":");
-    return [k.trim(), rest.join(":").trim()] as [string, string];
-  }).filter(([k, v]) => k && v);
-  const name = String(form.get("name") || "").trim();
-  const slug = (String(form.get("slug") || "") || name)
-    .toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60);
-  const num = (key: string) => {
-    const v = String(form.get(key) || "").replace(/[^\d]/g, "");
-    return v ? Number(v) : 0;
-  };
-  return {
-    slug, name,
-    category: String(form.get("category") || "Solar") as ProductInput["category"],
-    short: String(form.get("short") || "").trim(),
-    description: String(form.get("description") || "").trim(),
-    price: num("price"),
-    was: num("was") || undefined,
-    bonus: String(form.get("bonus") || "").trim() || undefined,
-    freeDelivery: form.get("freeDelivery") === "on",
-    inStock: form.get("inStock") === "on",
-    includes: lines("includes"),
-    specs,
-    image: String(form.get("image") || "").trim() || "/stock/solar-roof.webp",
-  };
-}
-
-/** Tells Bing and Yandex the moment a product changes. */
-async function announce(paths: string[]) {
-  const key = process.env.INDEXNOW_KEY;
-  const host = "mojatechelectrical.com";
-  if (!key) return;
-  try {
-    await fetch("https://api.indexnow.org/IndexNow", {
-      method: "POST",
-      headers: { "Content-Type": "application/json; charset=utf-8" },
-      body: JSON.stringify({ host, key, keyLocation: `https://${host}/${key}.txt`,
-        urlList: paths.map((p) => `https://${host}${p}`) }),
-    });
-  } catch { /* announcing is a bonus; never block a save */ }
-}
-
-export async function upsertProduct(_prev: unknown, form: FormData) {
-  if (!(await isSignedIn())) return { error: "Please sign in again." };
-  if (!dbConfigured()) return { error: "No database is connected yet. Add DATABASE_URL in Vercel." };
-  const p = readForm(form);
-  if (!p.name) return { error: "A product needs a name." };
-  if (!p.price) return { error: "A product needs a price." };
-  try {
-    await saveProduct(p);
-    revalidatePath("/products");
-    revalidatePath(`/products/${p.slug}`);
-    revalidatePath("/sitemap.xml");
-    await announce(["/products", `/products/${p.slug}`]);
-    return { ok: `Saved. ${p.name} is live at /products/${p.slug}` };
-  } catch (e) {
-    console.error("admin save failed", e);
-    return { error: "Could not save. Please try again, or check the database connection." };
-  }
-}
-
-export async function removeProduct(_prev: unknown, form: FormData) {
-  if (!(await isSignedIn())) return { error: "Please sign in again." };
-  const slug = String(form.get("slug") || "");
-  try {
-    await deleteProduct(slug);
-    revalidatePath("/products");
-    revalidatePath(`/products/${slug}`);
-    return { ok: "Removed." };
-  } catch (e) {
-    console.error("admin delete failed", e);
-    return { error: "Could not remove. Please try again." };
-  }
-}
-
-export async function loadSamples() {
-  if (!(await isSignedIn())) return { error: "Please sign in again." };
-  if (!dbConfigured()) return { error: "No database is connected yet." };
-  try {
-    await seedSamples();
-    revalidatePath("/products");
-    return { ok: "The six samples are now in your database, ready to edit." };
-  } catch (e) {
-    console.error("admin seed failed", e);
-    return { error: "Could not load them. Check the database connection." };
-  }
 }

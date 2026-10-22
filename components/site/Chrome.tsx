@@ -30,7 +30,10 @@ export function Header() {
   const router = useRouter();
 
   useEffect(() => {
-    const onScroll = () => document.querySelector(".hdr")?.classList.toggle("solid", window.scrollY > 60);
+    /* Solid once scrolled, and always on pages that open on white (product and
+       project pages), where the white header text would otherwise be invisible. */
+    const lightTop = !document.querySelector(".phero, .film");
+    const onScroll = () => document.querySelector(".hdr")?.classList.toggle("solid", lightTop || window.scrollY > 60);
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);

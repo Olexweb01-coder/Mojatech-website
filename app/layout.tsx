@@ -1,39 +1,26 @@
-import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 import { Hanken_Grotesk } from "next/font/google";
-import "./globals.css";
-import { Header, Footer } from "@/components/site/Chrome";
-import Intro from "@/components/site/Intro";
-import ArikLoader from "@/components/site/ArikLoader";
-import SmoothScroll, { RouteReset } from "@/components/site/Motion";
-import AppInstall from "@/components/site/AppInstall";
 import { company } from "@/lib/data/company";
-import { businessSchema, siteSchema, siteUrl, jsonLd } from "@/lib/seo";
+import { siteUrl } from "@/lib/seo";
+import type { Metadata } from "next";
+
+/* The shared root: only what the website and the admin app both need.
+ * Each side brings its own styles, chrome and scripts in its own layout,
+ * so the admin never downloads the website's animation code, and vice versa. */
 
 const hanken = Hanken_Grotesk({ subsets: ["latin"], weight: ["400", "500", "600", "700", "800"], display: "swap", variable: "--font-hanken" });
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
-  title: {
-    default: "Electrical, solar and security in Nigeria | MOJATECH",
-    template: "%s | MOJATECH",
-  },
-  description: "Electrical installation, solar and inverter backup, CCTV and industrial power for homes and businesses across Nigeria. CAC registered since 2019.",
   applicationName: company.name,
-  keywords: ["MOJATECH", "Mojatech Electrical", "electrician Nigeria", "solar installation Nigeria", "inverter installation Lagos", "CCTV installation Nigeria", "electrical contractor Ogun State"],
-  authors: [{ name: company.name }],
-  creator: company.name,
-  robots: { index: true, follow: true },
-  icons: { icon: "/brand/mojatech-mark.png", apple: "/icon-192.png" },
-  appleWebApp: { capable: true, title: "MOJATECH", statusBarStyle: "black-translucent" },
 };
-
-export const viewport: Viewport = { themeColor: "#05081f", width: "device-width", initialScale: 1, viewportFit: "cover" };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en-NG" className={hanken.variable}>
+    <html lang="en-NG" className={hanken.variable} suppressHydrationWarning>
       <head>
+        {/* Decides, before the first paint, whether the home page plays its opening.
+            It only ever plays on "/", so it is inert everywhere else, including the admin. */}
         <Script id="mj-open" strategy="beforeInteractive">{`
           (function () {
             var root = document.documentElement;
@@ -50,22 +37,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             root.setAttribute("data-intro", show ? "on" : "off");
           })();
         `}</Script>
-        <link rel="preload" as="image" href="/stock/house-off.webp" fetchPriority="high" />
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(businessSchema()) }} />
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(siteSchema()) }} />
-        <link rel="alternate" type="text/plain" href={siteUrl + "/llms.txt"} title="Plain summary for AI assistants" />
       </head>
-      <body>
-        <a href="#main" className="skip-link">Skip to content</a>
-        <Intro />
-        <Header />
-        <main id="main">{children}</main>
-        <Footer />
-        <ArikLoader />
-        <SmoothScroll />
-        <AppInstall />
-        <RouteReset />
-      </body>
+      <body>{children}</body>
     </html>
   );
 }

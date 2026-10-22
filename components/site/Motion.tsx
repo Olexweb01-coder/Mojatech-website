@@ -41,7 +41,8 @@ export function RouteReset() {
   useEffect(() => {
     const l = window.lenisRef;
     if (l) l.scrollTo(0, { immediate: true }); else window.scrollTo(0, 0);
-    document.querySelector(".hdr")?.classList.remove("solid");
+    /* Back to the see-through header, except on pages that open on white. */
+    document.querySelector(".hdr")?.classList.toggle("solid", !document.querySelector(".phero, .film"));
     (async () => {
       const { ScrollTrigger } = await import("gsap/ScrollTrigger");
       ScrollTrigger.refresh();

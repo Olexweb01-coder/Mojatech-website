@@ -1,102 +1,83 @@
-# MOJATECH Electrical Enterprises — Website
+# MOJATECH Electrical Enterprises: website and admin app
 
-Premium multipage corporate website for **MOJATECH Electrical Enterprises** (Lagos, Nigeria).
-Built with **Next.js 14 (App Router) + TypeScript + Tailwind CSS**.
+The public website at **mojatechelectrical.com**, and **MOJATECH Admin** at `/admin`:
+an installable phone app for running the business, with Arik, the AI assistant.
 
-**Power. Safety. Control. Reliability.**
+Built with **Next.js 16 (App Router), React 19 and TypeScript**, hosted on **Vercel**,
+data in **Neon Postgres**.
 
----
-
-## 1. Quick start
+## Quick start
 
 ```bash
 npm install
-npm run dev        # develop at http://localhost:3000
-npm run build      # production build (verified passing)
-npm start          # serve the production build
+npm run dev        # http://localhost:3000 (admin at /admin)
+npm run build      # production build: run before pushing
 ```
 
-Requires Node.js 18.17+ (Node 20+ recommended).
+Settings go in `.env.local` (see **`.env.example`** for every key and where to get it).
+Use a separate Neon **dev** branch locally so testing never touches live data.
 
-## 2. What's inside
+## The website
 
-| Route | Page |
+| Address | Page |
 | --- | --- |
-| `/` | Home — hero, scroll intro sequence, services, interactive system map, trust, projects, insights, final CTA |
-| `/about` | About MOJATECH |
-| `/services` | Services overview |
-| `/services/electrical-engineering` | Electrical Engineering |
-| `/services/solar-power` | Solar Power |
-| `/services/security-safety` | Security & Safety |
-| `/services/facility-management` | Facility Solutions |
-| `/services/electrical-consultancy` | Electrical Consultancy |
-| `/projects` + `/projects/[slug]` | Project archive + case-study pages |
-| `/insights` + `/insights/[slug]` | Blog with 3 starter articles (FAQ + Article schema) |
-| `/contact` | Contact page with production-ready form |
-| `/sitemap.xml`, `/robots.txt` | Generated automatically |
-| Custom 404 | "System not found" |
+| `/` | Home |
+| `/about`, `/careers`, `/contact` | About, careers (application form), quote form |
+| `/services`, `/services/[slug]` | Services |
+| `/products`, `/products/[slug]` | Products, managed in the admin |
+| `/work`, `/work/[slug]` | Work gallery, managed in the admin |
+| `/review` | Customers leave a review (approved in the admin before it shows) |
+| `/sitemap.xml`, `/robots.txt`, `/llms.txt` | Generated automatically |
 
-Every page has unique title, meta description, canonical URL, Open Graph/Twitter tags,
-breadcrumbs and Schema.org structured data (Organization/LocalBusiness, WebSite,
-Service, Article, FAQPage, BreadcrumbList, ContactPage).
+Fixed company details (phone, address, services) live in `lib/data/`.
+Products, projects and reviews are edited in the admin.
 
-## 3. Edit content in ONE place — `lib/data/`
+## The admin app (`/admin`)
 
-You should not need to touch components to update the site:
+Installable on phones (Add to Home Screen) with its own icon, a swipe-out side menu,
+offline screen and phone alerts.
 
-- **`lib/data/company.ts`** — phone, WhatsApp, email, address, social links.
-  Values still starting with `[ADD:` are treated as "not provided" and the related
-  buttons/links are **hidden automatically** — nothing fake is ever shown.
-- **`lib/data/services.ts`** — service names, copy, scope items, CTAs, metadata.
-- **`lib/data/projects.ts`** — project records. The four entries included are
-  **clearly-labelled editable templates** (`placeholder: true`). Fill in a real
-  project, set `placeholder: false`, and the template banners disappear.
-- **`lib/data/insights.ts`** — blog articles. Add an object → new page, metadata
-  and sitemap entry appear automatically.
+| Section | What it does |
+| --- | --- |
+| **Arik** | AI assistant: chat, documents (PDF, Word, Excel), photos, voice typing, hands-free voice, pictures (create and edit), reminders from plain words. Knows the business data each person's role allows. |
+| **Schedule** | Reminders, site visits, jobs, deliveries; alerts at the chosen time; alarms; repeats. |
+| **Enquiries** | Quote requests, orders and job applications from the website, with status, notes and follow-ups. |
+| **Products** | Catalogue: prices, photos, stock, show/hide, drag to reorder. |
+| **Work** | Projects with photos and stories. |
+| **Reviews** | Approve, publish, add and share the review link. |
+| **Team** | Accounts and roles (Owner, Manager, Sales, Editor), activity log. Owners only. |
 
-## 4. Replace image placeholders
+**Sign-in:** each person has an email and password. The master password
+(`ADMIN_PASSWORD`) is for first setup and recovery.
 
-Placeholders are designed frames that state exactly which photo belongs there
-(e.g. `[Commercial Solar Installation Image]`). To use real photos:
+**AI services** (all free tiers, used one after another when one is busy):
+Groq, Google Gemini, Mistral, OpenRouter for text; Groq Whisper for voice typing;
+Fish Audio for the speaking voice; Cloudflare Workers AI (FLUX.2) for pictures.
+Code: `lib/arik/`.
 
-1. Put images in `public/images/…`
-2. Replace the relevant `<ImagePlaceholder …/>` with `next/image`:
+**Alerts and the clock:** phone notifications use Web Push (keys are created
+automatically). Reminders, follow-up nudges and the 7:30am briefing run from
+`/api/cron/tick`, called every 5 minutes by cron-job.org with
+`Authorization: Bearer <CRON_SECRET>`, plus a daily Vercel cron as a backstop.
 
-```tsx
-import Image from "next/image";
-<Image src="/images/solar-project.jpg" alt="MOJATECH solar installation on a commercial roof in Lagos" width={1600} height={1200} className="border border-line object-cover" />
+## Where things are
+
+```
+app/(site)/          the public website
+app/admin/           the admin app (pages in app/admin/(app)/, APIs in app/admin/api/)
+app/api/             public endpoints: enquiry, review, cron
+components/site/     website pieces       components/admin/   admin pieces
+lib/store.ts         database tables (created automatically on first use)
+lib/admin-auth.ts    accounts, roles, sessions
+lib/arik/            the assistant        lib/push.ts, lib/schedule.ts   alerts and schedule
+public/admin-sw.js   the admin app's service worker (offline, alerts)
 ```
 
-The official logo is already in place (`public/logo.jpeg`, also used as favicon) — untouched, as supplied.
+## Security notes
 
-## 5. Environment variables
-
-Copy `.env.example` → `.env.local`:
-
-- `NEXT_PUBLIC_SITE_URL` — your real domain (canonical URLs, sitemap, OG tags).
-- `CONTACT_WEBHOOK_URL` — any endpoint accepting a JSON POST (Formspree, Basin,
-  Make/Zapier webhook, custom mail API…). Until it's set, the form **honestly
-  tells visitors it isn't connected** and shows direct contact options — it never
-  fake-submits. The handler is isolated in `app/api/contact/route.ts`.
-
-## 6. Deploy
-
-Standard Next.js — deploys as-is to **Vercel** or **Netlify** (build command
-`npm run build`). Set the two environment variables in the host dashboard.
-After deploying: connect Google Search Console, submit `/sitemap.xml`, and link
-your Google Business Profile.
-
-## 7. Motion system (note)
-
-Motion is delivered with CSS animations, SVG stroke animation and a lightweight
-IntersectionObserver reveal system instead of GSAP/Lenis. Same cinematic result,
-zero animation dependencies, smaller bundle, better Core Web Vitals, and
-`prefers-reduced-motion` is fully respected. If you later want GSAP timelines,
-`components/Reveal.tsx` is the single integration point to swap.
-
-## 8. Honesty guarantees baked in
-
-- No fabricated statistics, clients, awards, testimonials or certifications.
-- Placeholder projects are labelled as templates on the site itself.
-- Unset contact details are hidden, never invented.
-- The contact form reports its real delivery status.
+- Strict Content Security Policy and security headers (`next.config.mjs`); the admin
+  additionally allows the microphone and audio playback.
+- Passwords hashed with scrypt; sessions stored as fingerprints; sign-in lockout after
+  6 failed tries; every admin page and action checks the person's role on the server.
+- Website forms have spam traps and per-visitor limits.
+- Keys and passwords live only in `.env.local` and Vercel, never in the code.

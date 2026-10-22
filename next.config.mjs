@@ -16,6 +16,13 @@ const csp = [
   "upgrade-insecure-requests",
 ].join("; ");
 
+/* The admin also needs the microphone (talking to Arik) and to play Arik's voice. */
+const adminCsp = csp.replace("img-src 'self' data: blob:", "img-src 'self' data: blob:; media-src 'self' data: blob:");
+const adminHeaders = [
+  { key: "Content-Security-Policy", value: adminCsp },
+  { key: "Permissions-Policy", value: "camera=(), microphone=(self), geolocation=(), payment=(), usb=(), interest-cohort=()" },
+];
+
 const securityHeaders = [
   { key: "Content-Security-Policy", value: csp },
   { key: "X-Frame-Options", value: "DENY" },
@@ -39,11 +46,18 @@ const nextConfig = {
         // The admin is never cached anywhere and never indexed.
         source: "/admin/:path*",
         headers: [
+          ...adminHeaders,
           { key: "Cache-Control", value: "no-store, no-cache, must-revalidate, private" },
           { key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" },
         ],
       },
+      {
+        /* Service workers are always re-checked, so an update reaches phones on the next open. */
+        source: "/:sw(sw|admin-sw).js",
+        headers: [{ key: "Cache-Control", value: "no-cache, max-age=0, must-revalidate" }],
+      },
       { source: "/admin", headers: [
+        ...adminHeaders,
         { key: "Cache-Control", value: "no-store, no-cache, must-revalidate, private" },
         { key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" },
       ] },

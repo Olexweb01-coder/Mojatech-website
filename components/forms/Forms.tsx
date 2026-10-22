@@ -2,6 +2,25 @@
 import { useState } from "react";
 import { services } from "@/lib/data/services";
 import { company } from "@/lib/data/company";
+import { sendEnquiry } from "@/lib/client/enquiry";
+
+/* Each form is saved for the MOJATECH admin the moment it is sent, then opens
+   WhatsApp exactly as before. */
+
+/** A field people never see. Only spam bots fill it in. */
+function Trap({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  return (
+    <div aria-hidden="true" style={{ position: "absolute", left: "-9999px", width: 1, height: 1, overflow: "hidden" }}>
+      <label>Leave this empty<input tabIndex={-1} autoComplete="off" value={value} onChange={(e) => onChange(e.target.value)} /></label>
+    </div>
+  );
+}
+
+/** When the form appeared, to tell people from bots that fill forms instantly. */
+function useOpenedAt() {
+  const [at] = useState(() => (typeof performance === "undefined" ? 0 : performance.now()));
+  return at;
+}
 
 function useSteps(total: number) {
   const [step, setStep] = useState(1);
@@ -19,11 +38,18 @@ export function QuoteForm() {
   const [kind, setKind] = useState("");
   const [f, setF] = useState({ area: "", details: "", name: "", phone: "", email: "" });
   const set = (k: string, v: string) => setF((p) => ({ ...p, [k]: v }));
+  const [trap, setTrap] = useState("");
+  const openedAt = useOpenedAt();
+  const record = () => sendEnquiry({
+    kind: "quote", name: f.name, phone: f.phone, email: f.email, website: trap, openedAt,
+    fields: [["Service", service], ["Building", kind], ["Area", f.area], ["Details", f.details]],
+  });
   const send = waLink(["Hello MOJATECH, I would like a quote.", service && `Service: ${service}.`, kind && `Building: ${kind}.`,
     f.area && `Area: ${f.area}.`, f.details && `Details: ${f.details}`, f.name && `Name: ${f.name}.`, f.phone && `Phone: ${f.phone}.`, f.email && `Email: ${f.email}.`]);
 
   return (
     <form className="form" noValidate onSubmit={(e) => e.preventDefault()}>
+      <Trap value={trap} onChange={setTrap} />
       {!s.sent && (
         <>
           <div className="steps-bar">{[1, 2, 3].map((n) => <i key={n} className={n <= s.step ? "on" : ""} />)}</div>
@@ -60,7 +86,7 @@ export function QuoteForm() {
             <button className="btn btn-line back" type="button" hidden={s.step === 1} onClick={() => s.setStep(s.step - 1)}>Back</button>
             {s.step < 3
               ? <button className="btn btn-red next" type="button" onClick={() => s.setStep(s.step + 1)}>Continue</button>
-              : <a className="btn btn-red next" href={send} target="_blank" rel="noopener noreferrer" onClick={() => s.setSent(true)}>Send request</a>}
+              : <a className="btn btn-red next" href={send} target="_blank" rel="noopener noreferrer" onClick={() => { record(); s.setSent(true); }}>Send request</a>}
           </div>
         </>
       )}
@@ -79,11 +105,18 @@ export function CareersForm() {
   const [prog, setProg] = useState("");
   const [f, setF] = useState({ school: "", when: "", name: "", phone: "", email: "", note: "" });
   const set = (k: string, v: string) => setF((p) => ({ ...p, [k]: v }));
+  const [trap, setTrap] = useState("");
+  const openedAt = useOpenedAt();
+  const record = () => sendEnquiry({
+    kind: "careers", name: f.name, phone: f.phone, email: f.email, website: trap, openedAt,
+    fields: [["Programme", prog], ["School", f.school], ["Available", f.when], ["Note", f.note]],
+  });
   const send = waLink(["Hello MOJATECH, I would like to apply.", prog && `Programme: ${prog}.`, f.school && `School: ${f.school}.`,
     f.when && `Available: ${f.when}.`, f.name && `Name: ${f.name}.`, f.phone && `Phone: ${f.phone}.`, f.email && `Email: ${f.email}.`, f.note && `Note: ${f.note}`]);
 
   return (
     <form className="form careers-form" noValidate onSubmit={(e) => e.preventDefault()}>
+      <Trap value={trap} onChange={setTrap} />
       {!s.sent && (
         <>
           <div className={"fstep" + (s.step === 1 ? " on" : "")} data-step="1">
@@ -110,7 +143,7 @@ export function CareersForm() {
             <button className="btn btn-line back" type="button" hidden={s.step === 1} onClick={() => s.setStep(s.step - 1)}>Back</button>
             {s.step < 2
               ? <button className="btn btn-red next" type="button" onClick={() => s.setStep(2)}>Continue</button>
-              : <a className="btn btn-red next" href={send} target="_blank" rel="noopener noreferrer" onClick={() => s.setSent(true)}>Send application</a>}
+              : <a className="btn btn-red next" href={send} target="_blank" rel="noopener noreferrer" onClick={() => { record(); s.setSent(true); }}>Send application</a>}
           </div>
         </>
       )}

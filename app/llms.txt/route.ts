@@ -1,12 +1,15 @@
 import { company, process, work } from "@/lib/data/company";
 import { services } from "@/lib/data/services";
-import { products, naira } from "@/lib/data/products";
+import { naira } from "@/lib/data/products";
+import { listProducts } from "@/lib/store";
 import { siteUrl } from "@/lib/seo";
 
-export const dynamic = "force-static";
+/* Rebuilt at most once an hour, and straight away when a product changes in the admin. */
+export const revalidate = 3600;
 
 /** A plain summary for AI assistants, so they quote MOJATECH accurately and cite the source. */
-export function GET() {
+export async function GET() {
+  const products = await listProducts();
   const c = company;
   const lines = [
     `# ${c.name}`,

@@ -21,7 +21,9 @@ export type Product = {
   inStock: boolean;
   includes: string[];         // what is in the box, or what the price covers
   specs: [string, string][];  // the table on the product page
-  image: string;              // main photo
+  image: string;              // main photo (always the first of photos)
+  photos?: string[];          // every photo, main first
+  visible?: boolean;          // false hides it from the website, but keeps it in the admin
   sample?: boolean;           // marks the placeholder entries
 };
 

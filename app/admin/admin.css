@@ -400,7 +400,14 @@ button, input, select, textarea { font: inherit; color: inherit; }
   .mjr-side { display: grid; gap: 10px; align-content: start; position: sticky; top: calc(var(--bar-h) + 20px); max-height: calc(100dvh - var(--bar-h) - 40px); overflow-y: auto; padding-right: 4px; }
   .mjr-chatsbtn { display: none; }
   .mjr-recent { display: none; }
+  /* Folded away: the conversation takes the full width. */
+  html[data-mjr-side="hidden"] .mjr-wrap { grid-template-columns: minmax(0, 1fr); }
+  html[data-mjr-side="hidden"] .mjr-side { display: none; }
+  html[data-mjr-side="hidden"] .mjr-recent { display: block; }
 }
+.mjr-sidetoggle { display: none; }
+.mjr-sidetoggle svg, .mjr-chatsbtn svg { width: 18px; height: 18px; }
+@media (min-width: 1100px) { .mjr-sidetoggle { display: inline-flex; } }
 .mjr-newbtn { justify-self: start; }
 .mjr-newbtn svg { width: 18px; height: 18px; }
 .mjr-group { display: block; padding: 12px 12px 4px; font-size: .74rem; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-3); }

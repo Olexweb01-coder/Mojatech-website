@@ -29,8 +29,8 @@ export const viewport: Viewport = {
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="mja">
-      {/* Before the first paint: re-apply "menu tucked away" on wide screens, so the layout never jumps. */}
-      <script dangerouslySetInnerHTML={{ __html: `try{if(localStorage.getItem("mja-nav-hidden")==="1")document.documentElement.dataset.mjaNav="hidden"}catch(e){}` }} />
+      {/* Before the first paint: re-apply "menu tucked away" and "chat list folded" on wide screens, so nothing jumps. */}
+      <script dangerouslySetInnerHTML={{ __html: `try{var d=document.documentElement.dataset;if(localStorage.getItem("mja-nav-hidden")==="1")d.mjaNav="hidden";if(localStorage.getItem("mjr-side-hidden")==="1")d.mjrSide="hidden"}catch(e){}` }} />
       {children}
       <AdminWorker />
     </div>

@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import Markdown from "./Markdown";
 import { shrink } from "@/lib/client/photo";
 import { record, transcribe, speak, stopSpeaking, unlockAudio, browserRecognition, type Recorder } from "./voice";
@@ -25,6 +25,17 @@ const MODES: [Mode, string, string][] = [
   ["doc", "Quotation", "Quotations, invoices, pro-formas and receipts as PDF and Word"],
 ];
 
+/* Wide screens: the chat list can be folded away. The choice is remembered on the
+   device and applied before the first paint (see app/admin/layout.tsx). */
+const SIDE_KEY = "mjr-side-hidden";
+const sideHidden = () => document.documentElement.dataset.mjrSide === "hidden";
+function setSideHidden(v: boolean) {
+  try { localStorage.setItem(SIDE_KEY, v ? "1" : "0"); } catch {}
+  if (v) document.documentElement.dataset.mjrSide = "hidden"; else delete document.documentElement.dataset.mjrSide;
+  window.dispatchEvent(new Event("mjr-side"));
+}
+const onSide = (cb: () => void) => { window.addEventListener("mjr-side", cb); return () => window.removeEventListener("mjr-side", cb); };
+
 let seq = 0;
 const history_ = typeof window === "undefined" ? (null as unknown as History) : window.history;
 const key = () => `k${++seq}`;
@@ -46,6 +57,7 @@ const I = {
   close: "M6 6l12 12M18 6 6 18",
   doc: "M7 3.5h6.5L18 8v12.5H7zM13 3.5V8h5",
   trash: "M5 7h14M9.5 7V4.5h5V7M7 7l1 13h8l1-13",
+  panel: "M4 5h16v14H4zM9.5 5v14",
 };
 
 export default function ArikChat({ name, firstName, suggestions, ready }:
@@ -59,6 +71,7 @@ export default function ArikChat({ name, firstName, suggestions, ready }:
   const [recording, setRecording] = useState<"off" | "dictate">("off");
   const [transcribing, setTranscribing] = useState(false);
   const [chats, setChats] = useState<ChatItem[] | null>(null);
+  const listHidden = useSyncExternalStore(onSide, sideHidden, () => false);
   const [projects, setProjects] = useState<Project[]>([]);
   const [meKey, setMeKey] = useState("");
   const [isOwner, setIsOwner] = useState(false);
@@ -549,6 +562,10 @@ export default function ArikChat({ name, firstName, suggestions, ready }:
     </aside>
     <div className={"mjr" + (msgs.length ? " has-msgs" : "")}>
       <div className="mjr-top">
+        <button type="button" className="mja-btn line sm mjr-sidetoggle" onClick={() => setSideHidden(!listHidden)}
+          aria-pressed={!listHidden} title={listHidden ? "Show the chat list" : "Hide the chat list"}>
+          <Icon d={I.panel} /> {listHidden ? "Show chats" : "Hide chats"}
+        </button>
         <button type="button" className="mja-btn line sm mjr-chatsbtn" onClick={openHistory}><Icon d={I.chats} /> Chats</button>
         <button type="button" className="mja-btn line sm" onClick={newChat} disabled={!msgs.length && !chatId}><Icon d={I.plus} /> New chat</button>
         <label className="mjr-mode">

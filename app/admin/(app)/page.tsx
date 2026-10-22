@@ -41,7 +41,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ d
       {!dbConfigured()
         ? <p className="mja-warn">{settings.name} needs the database. Add <b>DATABASE_URL</b> to <b>.env.local</b>, then restart.</p>
         : <ArikChat name={settings.name} firstName={me.master ? "" : me.name.split(" ")[0]} suggestions={suggestions}
-            ready={configured().length > 0} canRename={can(me, "team")} />}
+            ready={configured().length > 0} />}
       {can(me, "team") && dbConfigured() && <RenameAssistant name={settings.name} />}
     </>
   );

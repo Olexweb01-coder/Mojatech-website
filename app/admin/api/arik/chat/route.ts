@@ -2,10 +2,11 @@ import { guard } from "../guard";
 import { streamReply, configured, NoProviderError, type ChatMessage, type Intent } from "@/lib/arik/providers";
 import { systemPrompt } from "@/lib/arik/context";
 import { REMIND_HINT, handleReminder } from "@/lib/arik/reminders";
-import { wantsQuote, handleQuote } from "@/lib/arik/quotes";
+import { wantsQuote, handleQuote, wantsFile, aboutPrevious, MD_MIME } from "@/lib/arik/quotes";
+import { titleOf } from "@/lib/docs/md";
 import { imagesConfigured, takeImage, giveBack, makeImage, shapeFor, dailyLimit, imagesUsedToday, PROMPT_WRITER } from "@/lib/arik/images";
 import {
-  ownerKey, ownsChat, createChat, getMessages, addMessage, dropLastAssistant, getFiles, getArikSettings, saveFile, type FileRef,
+  ownerKey, getChat, createChat, getMessages, addMessage, dropLastAssistant, getFiles, getArikSettings, saveFile, type FileRef,
 } from "@/lib/arik/store";
 
 /* One turn of a conversation with Arik. Streams the answer back as it is
@@ -27,30 +28,33 @@ export async function POST(req: Request) {
   const me = g.me;
   const owner = ownerKey(me);
 
-  const body = await req.json().catch(() => null) as null | { chatId?: string; text?: string; fileIds?: string[]; mode?: string; voice?: boolean; retry?: boolean };
+  const body = await req.json().catch(() => null) as null | { chatId?: string; projectId?: string; text?: string; fileIds?: string[]; mode?: string; voice?: boolean; retry?: boolean };
   if (!body) return Response.json({ error: "Bad request." }, { status: 400 });
   if (!configured().length) return Response.json({ error: "setup" }, { status: 503 });
 
   const text = String(body.text || "").slice(0, 20_000).trim();
-  let chatId = body.chatId && (await ownsChat(owner, body.chatId)) ? body.chatId : null;
+  /* Chats are shared: anyone on the team can continue any chat. */
+  let chatId = body.chatId && (await getChat(body.chatId)) ? body.chatId : null;
+  const authorName = me.master ? "Owner" : me.name;
   const fileIds = (body.fileIds || []).slice(0, 8);
   if (!body.retry && !text && !fileIds.length) return Response.json({ error: "Say something first." }, { status: 400 });
 
   /* Save the question (or, for "try again", drop the previous answer). */
-  const files = await getFiles(owner, fileIds);
+  const files = await getFiles(fileIds);
   const refs: FileRef[] = files.map((f) => ({ id: f.id, name: f.name, kind: f.kind, chars: f.text.length || undefined }));
-  if (!chatId) chatId = await createChat(owner, text.replace(/\s+/g, " ").slice(0, 60) || files[0]?.name || "New chat");
+  if (!chatId) chatId = await createChat(owner, text.replace(/\s+/g, " ").slice(0, 60) || files[0]?.name || "New chat", authorName, body.projectId);
   if (body.retry) await dropLastAssistant(chatId);
-  else await addMessage(chatId, "user", text, refs);
+  else await addMessage(chatId, "user", text, refs, { author: owner, authorName });
 
   /* Rebuild the conversation for the model, with document text and photos attached
      to the messages they came with. Only the latest 30 turns are sent. */
   const history = (await getMessages(chatId)).slice(-30);
   const allIds = [...new Set(history.flatMap((m) => m.files.map((f) => f.id)))];
-  const stored = new Map((await getFiles(owner, allIds)).map((f) => [f.id, f]));
+  const stored = new Map((await getFiles(allIds)).map((f) => [f.id, f]));
   const settings = await getArikSettings();
 
   let docChars = 0, hasImage = false;
+  const manyAuthors = new Set(history.filter((m) => m.role === "user").map((m) => m.meta.author || "")).size > 1;
   const lastUserIndex = history.map((m) => m.role).lastIndexOf("user");
   const messages: ChatMessage[] = [{ role: "system", content: await systemPrompt(me, settings.name, Boolean(body.voice)) }];
   history.forEach((m, i) => {
@@ -67,7 +71,9 @@ export async function POST(req: Request) {
       ] });
     } else {
       const note = m.role === "user" && imgs.length ? `\n\n(Earlier, the person shared ${imgs.length} photo${imgs.length > 1 ? "s" : ""}: ${imgs.map((f) => f!.name).join(", ")}.)` : "";
-      messages.push({ role: m.role, content: (m.content || "(see attachment)") + docText + note });
+      /* In a chat several team members have written in, say who said what. */
+      const by = m.role === "user" && manyAuthors && m.meta.authorName ? `[${m.meta.authorName}] ` : "";
+      messages.push({ role: m.role, content: by + (m.content || "(see attachment)") + docText + note });
     }
   });
 
@@ -82,6 +88,16 @@ export async function POST(req: Request) {
   if (!wantsImage && !body.voice && lastText && (mode === "doc" || (wantsQuote(lastText, chatHasDoc) && !REMIND_HINT.test(lastText)))) {
     const r = await handleQuote({ text: lastText, me, owner, signal: req.signal, history }).catch((e) => { console.error("quote failed", e); return null; });
     if (r) return quickTurn(chatId, r.content, req.signal, r.files);
+  }
+  /* "Make that a PDF": the previous reply becomes a document straight away. */
+  const fileWanted = !wantsImage && !body.voice && wantsFile(lastText);
+  if (fileWanted && aboutPrevious(lastText)) {
+    const prev = [...history].reverse().find((m) => m.role === "assistant" && m.content.trim().length > 40);
+    if (prev) {
+      const title = titleOf(prev.content);
+      const id = await saveFile(owner, { name: title, mime: MD_MIME, kind: "doc", text: prev.content, bytes: null });
+      return quickTurn(chatId, `Done. **${title}** is ready below: **PDF** to send, **Word** to edit, or **Share** to send it straight to WhatsApp or email. Tell me if you want anything changed in it first.`, req.signal, [{ id, name: title, kind: "doc" }]);
+    }
   }
   if (!wantsImage && !body.retry && text && REMIND_HINT.test(text)) {
     const reply = await handleReminder(text, owner, req.signal).catch(() => null);
@@ -113,7 +129,13 @@ export async function POST(req: Request) {
         const msg = e instanceof NoProviderError ? "setup" : e instanceof Error ? e.message : "Something went wrong.";
         send({ error: msg });
       } finally {
-        if (answer.trim()) await addMessage(id, "assistant", answer, [], { provider, intent }).catch(() => {});
+        let attached: FileRef[] = [];
+        if (fileWanted && answer.trim().length > 80) {
+          const title = titleOf(answer);
+          const fid = await saveFile(owner, { name: title, mime: MD_MIME, kind: "doc", text: answer, bytes: null }).catch(() => "");
+          if (fid) { attached = [{ id: fid, name: title, kind: "doc" }]; send({ doc: attached[0] }); }
+        }
+        if (answer.trim()) await addMessage(id, "assistant", answer, attached, { provider, intent }).catch(() => {});
         send({ done: true, provider });
         if (open) try { controller.close(); } catch { /* already closed */ }
       }

@@ -12,7 +12,7 @@ import { products as samples } from "@/lib/data/products";
  *   enquiries quote requests, orders and job applications from the website
  *   projects  the work gallery
  *   reviews   what customers say (sent from the website, or added in the admin)
- *   arik_chats, arik_messages, arik_files   conversations with Arik, private to each person
+ *   arik_chats, arik_messages, arik_files, arik_projects   conversations with Arik, shared by the team, with their authors
  *   push_subs, schedule   phones that get alerts, and reminders, jobs and site visits
  *   users, sessions, login_attempts, activity   the team, who is signed in, lockouts, and who did what
  *   kv        small settings, such as "the samples have been imported"
@@ -158,6 +158,16 @@ export async function ensureSchema() {
           updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
         );
         CREATE INDEX IF NOT EXISTS arik_chats_owner ON arik_chats (owner, updated_at DESC);
+        CREATE TABLE IF NOT EXISTS arik_projects (
+          id          BIGSERIAL PRIMARY KEY,
+          name        TEXT NOT NULL,
+          pinned      BOOLEAN NOT NULL DEFAULT false,
+          created_by  TEXT NOT NULL DEFAULT '',
+          created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+        );
+        ALTER TABLE arik_chats ADD COLUMN IF NOT EXISTS author_name TEXT NOT NULL DEFAULT '';
+        ALTER TABLE arik_chats ADD COLUMN IF NOT EXISTS pinned BOOLEAN NOT NULL DEFAULT false;
+        ALTER TABLE arik_chats ADD COLUMN IF NOT EXISTS project_id BIGINT REFERENCES arik_projects(id) ON DELETE SET NULL;
         CREATE TABLE IF NOT EXISTS arik_messages (
           id          BIGSERIAL PRIMARY KEY,
           chat_id     BIGINT NOT NULL REFERENCES arik_chats(id) ON DELETE CASCADE,

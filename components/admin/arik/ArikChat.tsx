@@ -11,8 +11,9 @@ import { record, transcribe, speak, stopSpeaking, unlockAudio, browserRecognitio
  * is hands-free: speak, Arik answers out loud, then listens again. */
 
 type FileChip = { id?: string; name: string; kind: "image" | "doc"; preview?: string; uploading?: boolean; key: string; chars?: number };
-type Msg = { key: string; role: "user" | "assistant"; content: string; files?: FileChip[]; via?: string; error?: string; streaming?: boolean; status?: string };
-type ChatItem = { id: string; title: string; updatedAt: string };
+type Msg = { key: string; role: "user" | "assistant"; content: string; files?: FileChip[]; via?: string; error?: string; streaming?: boolean; status?: string; author?: string; authorName?: string };
+type ChatItem = { id: string; title: string; updatedAt: string; author: string; authorName: string; pinned: boolean; projectId: string | null };
+type Project = { id: string; name: string; pinned: boolean; createdBy: string; count: number };
 type Mode = "auto" | "fast" | "deep" | "web" | "image" | "doc";
 
 const MODES: [Mode, string, string][] = [
@@ -25,6 +26,7 @@ const MODES: [Mode, string, string][] = [
 ];
 
 let seq = 0;
+const history_ = typeof window === "undefined" ? (null as unknown as History) : window.history;
 const key = () => `k${++seq}`;
 
 function Icon({ d, fill }: { d: string; fill?: boolean }) {
@@ -46,8 +48,8 @@ const I = {
   trash: "M5 7h14M9.5 7V4.5h5V7M7 7l1 13h8l1-13",
 };
 
-export default function ArikChat({ name, firstName, suggestions, ready, canRename }:
-  { name: string; firstName: string; suggestions: string[]; ready: boolean; canRename: boolean }) {
+export default function ArikChat({ name, firstName, suggestions, ready }:
+  { name: string; firstName: string; suggestions: string[]; ready: boolean }) {
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [chatId, setChatId] = useState<string | null>(null);
   const [text, setText] = useState("");
@@ -57,6 +59,15 @@ export default function ArikChat({ name, firstName, suggestions, ready, canRenam
   const [recording, setRecording] = useState<"off" | "dictate">("off");
   const [transcribing, setTranscribing] = useState(false);
   const [chats, setChats] = useState<ChatItem[] | null>(null);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [meKey, setMeKey] = useState("");
+  const [isOwner, setIsOwner] = useState(false);
+  const [activeProject, setActiveProject] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
+  const [editChat, setEditChat] = useState<ChatItem | null>(null);
+  const [editProject, setEditProject] = useState<Project | "new" | null>(null);
+  const chatDialog = useRef<HTMLDialogElement>(null);
+  const projectDialog = useRef<HTMLDialogElement>(null);
   const [voice, setVoice] = useState<"off" | "listening" | "thinking" | "speaking">("off");
   const [level, setLevel] = useState(0);
   const [notice, setNotice] = useState("");
@@ -91,6 +102,14 @@ export default function ArikChat({ name, firstName, suggestions, ready, canRenam
     el.style.height = Math.min(el.scrollHeight, 200) + "px";
   }, [text]);
 
+  const applyList = (r: { chats?: ChatItem[]; projects?: Project[]; me?: string; owner?: boolean } | null) => {
+    if (!r?.chats) return;
+    setChats(r.chats); setProjects(r.projects || []); setMeKey(r.me || ""); setIsOwner(Boolean(r.owner));
+  };
+  const loadChats = useCallback(async () => {
+    applyList(await fetch("/admin/api/arik/chats").then((x) => x.json()).catch(() => null));
+  }, []);
+
   /* ---------- Sending ---------- */
 
   const ask = useCallback(async (q: string, opts: { voice?: boolean; retry?: boolean } = {}): Promise<string> => {
@@ -103,7 +122,7 @@ export default function ArikChat({ name, firstName, suggestions, ready, canRenam
     const replyKey = key();
     setMsgs((m) => [
       ...(opts.retry ? m.slice(0, m.map((x) => x.role).lastIndexOf("assistant")) : m),
-      ...(opts.retry ? [] : [{ key: key(), role: "user" as const, content: q.trim(), files: ready }]),
+      ...(opts.retry ? [] : [{ key: key(), role: "user" as const, content: q.trim(), files: ready, author: meKey }]),
       { key: replyKey, role: "assistant" as const, content: "", streaming: true },
     ]);
     if (!opts.retry) { setText(""); setFiles([]); }
@@ -113,7 +132,7 @@ export default function ArikChat({ name, firstName, suggestions, ready, canRenam
     try {
       const res = await fetch("/admin/api/arik/chat", {
         method: "POST", signal: ac.signal, headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chatId, text: q.trim(), fileIds: ready.map((f) => f.id), mode, voice: opts.voice, retry: opts.retry }),
+        body: JSON.stringify({ chatId, projectId: chatId ? undefined : activeProject, text: q.trim(), fileIds: ready.map((f) => f.id), mode, voice: opts.voice, retry: opts.retry }),
       });
       if (!res.ok || !res.body) {
         const j = await res.json().catch(() => ({}));
@@ -149,10 +168,10 @@ export default function ArikChat({ name, firstName, suggestions, ready, canRenam
       patch({ streaming: false });
       setBusy(false);
       if (abort.current === ac) abort.current = null;
-      setChats(null);           /* refresh the list next time it is opened */
+      void loadChats();         /* the new or updated chat moves to the top of the list */
     }
     return answer;
-  }, [chatId, files, mode]);
+  }, [chatId, files, mode, loadChats, activeProject, meKey]);
 
   const stop = () => { abort.current?.abort(); };
 
@@ -298,30 +317,77 @@ export default function ArikChat({ name, firstName, suggestions, ready, canRenam
 
   /* ---------- Chats ---------- */
 
-  const openHistory = async () => {
-    history.current?.showModal();
-    if (!chats) {
-      const r = await fetch("/admin/api/arik/chats").then((x) => x.json()).catch(() => ({ chats: [] }));
-      setChats(r.chats || []);
-    }
-  };
-  const openChat = async (id: string) => {
+  const openHistory = () => { history.current?.showModal(); void loadChats(); };
+
+  const openChat = useCallback(async (id: string) => {
     history.current?.close();
     abort.current?.abort();
     const r = await fetch(`/admin/api/arik/chats/${id}`).then((x) => x.json()).catch(() => null);
-    if (!r?.messages) return flash("Could not open that chat.");
+    if (!r?.messages) { flash("That chat could not be opened. It may have been deleted."); return; }
     setChatId(id);
-    setMsgs(r.messages.map((m: { role: "user" | "assistant"; content: string; files: { id: string; name: string; kind: "image" | "doc" }[]; meta: { provider?: string } }) => ({
+    setMsgs(r.messages.map((m: { role: "user" | "assistant"; content: string; files: { id: string; name: string; kind: "image" | "doc" }[]; meta: { provider?: string; author?: string; authorName?: string } }) => ({
       key: key(), role: m.role, content: m.content, via: m.meta?.provider,
+      author: m.meta?.author || r.chat?.author, authorName: m.meta?.authorName,
       files: m.files?.map((f) => ({ ...f, key: key(), preview: f.kind === "image" ? `/admin/api/arik/files/${f.id}` : undefined })),
     })));
-    window.scrollTo(0, 0);
-  };
+    stick.current = true;
+    requestAnimationFrame(() => bottom.current?.scrollIntoView({ block: "end" }));
+  }, []);
+
+  /* Like ChatGPT: the list of chats is always there, the open chat is in the
+     address (so a reload, or the back button, brings it back), and a new chat
+     starts empty. */
+  useEffect(() => {
+    fetch("/admin/api/arik/chats").then((x) => x.json()).then(applyList).catch(() => {});
+    const c = new URLSearchParams(location.search).get("c");
+    if (c && /^\d+$/.test(c)) void Promise.resolve().then(() => openChat(c));
+  }, [openChat]);
+  useEffect(() => {
+    const want = chatId ? `/admin?c=${chatId}` : "/admin";
+    if (location.pathname + location.search !== want) history_.replaceState(history_.state, "", want);
+  }, [chatId]);
+
   const newChat = () => { abort.current?.abort(); setChatId(null); setMsgs([]); setText(""); setFiles([]); history.current?.close(); input.current?.focus(); };
   const removeChat = async (id: string) => {
-    await fetch(`/admin/api/arik/chats/${id}`, { method: "DELETE" }).catch(() => {});
+    const res = await fetch(`/admin/api/arik/chats/${id}`, { method: "DELETE" }).catch(() => null);
+    const j = await res?.json().catch(() => ({}));
+    if (!res?.ok) { flash(j?.error || "Could not delete that chat."); return; }
     setChats((c) => c?.filter((x) => x.id !== id) || null);
+    chatDialog.current?.close();
+    flash("Chat deleted.");
     if (id === chatId) newChat();
+  };
+
+  /* Pin, rename, or move a chat into a project. */
+  const saveChat = async (id: string, patch: { title?: string; pinned?: boolean; projectId?: string | null }) => {
+    const res = await fetch(`/admin/api/arik/chats/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(patch) }).catch(() => null);
+    if (!res?.ok) { flash("Could not save that change."); return; }
+    await loadChats();
+  };
+  const optionsFor = (c: ChatItem) => { setEditChat(c); chatDialog.current?.showModal(); };
+
+  const saveProject = async (name: string, pinned: boolean) => {
+    if (!name.trim()) return;
+    if (editProject === "new") {
+      const res = await fetch("/admin/api/arik/chats", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name }) }).catch(() => null);
+      const j = await res?.json().catch(() => ({}));
+      if (!res?.ok) { flash(j?.error || "Could not create the project."); return; }
+      setActiveProject(j.id);
+      if (editChat) await saveChat(editChat.id, { projectId: j.id });
+    } else if (editProject) {
+      await fetch(`/admin/api/arik/projects/${editProject.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, pinned }) }).catch(() => null);
+    }
+    projectDialog.current?.close();
+    await loadChats();
+  };
+  const removeProject = async (p: Project) => {
+    const res = await fetch(`/admin/api/arik/projects/${p.id}`, { method: "DELETE" }).catch(() => null);
+    const j = await res?.json().catch(() => ({}));
+    if (!res?.ok) { flash(j?.error || "Could not remove the project."); return; }
+    projectDialog.current?.close();
+    if (activeProject === p.id) setActiveProject(null);
+    flash("Project removed. Its chats are kept.");
+    await loadChats();
   };
 
   /* Any reply as a branded PDF or Word document. */
@@ -350,6 +416,113 @@ export default function ArikChat({ name, firstName, suggestions, ready, canRenam
 
   const copy = async (t: string) => { try { await navigator.clipboard.writeText(t); flash("Copied."); } catch { flash("Could not copy."); } };
 
+  /* Chats grouped like ChatGPT: Today, Yesterday, Previous 7 days, Older. */
+  const groupOf = (iso: string) => {
+    const day = (d: Date) => new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Lagos" }).format(d);
+    const t = day(new Date()), y = day(new Date(Date.now() - 86400_000)), d = day(new Date(iso));
+    if (d === t) return "Today";
+    if (d === y) return "Yesterday";
+    return Date.now() - new Date(iso).getTime() < 7 * 86400_000 ? "Previous 7 days" : "Older";
+  };
+  const who = (c: { author: string; authorName: string }) => (c.author === meKey ? "You" : c.authorName || "Someone");
+  const projectName = (id: string | null) => projects.find((p) => p.id === id)?.name;
+
+  const row = (c: ChatItem, opts: { compact?: boolean } = {}) => (
+    <li key={c.id} className={c.id === chatId ? "on" : ""}>
+      <div className="mjr-chatrow">
+        <button type="button" onClick={() => openChat(c.id)} aria-current={c.id === chatId ? "true" : undefined}>
+          <b>{c.pinned && <span className="mjr-pin" aria-label="Pinned">📌 </span>}{c.title}</b>
+          <small>{who(c)}{opts.compact ? ` · ${groupOf(c.updatedAt)}` : ""}{!activeProject && c.projectId && projectName(c.projectId) ? ` · ${projectName(c.projectId)}` : ""}</small>
+        </button>
+        {!opts.compact && (
+          <button type="button" className="mjr-more" onClick={() => optionsFor(c)} aria-label={`Options for ${c.title}`}>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.7" fill="currentColor" /><circle cx="12" cy="12" r="1.7" fill="currentColor" /><circle cx="19" cy="12" r="1.7" fill="currentColor" /></svg>
+          </button>
+        )}
+      </div>
+    </li>
+  );
+
+  /* The team's chats: search, pinned, projects, then recent by date. */
+  const chatList = (limit?: number) => {
+    if (!chats) return <div className="mja-skel"><i /><i /></div>;
+    if (limit) {
+      const list = chats.slice(0, limit);
+      return list.length ? <ul className="mjr-chatlist">{list.map((c) => row(c, { compact: true }))}</ul> : null;
+    }
+    const q = query.trim().toLowerCase();
+    if (q) {
+      const found = chats.filter((c) => c.title.toLowerCase().includes(q) || c.authorName.toLowerCase().includes(q));
+      return (
+        <>
+          <span className="mjr-group">{found.length ? `${found.length} found` : "Nothing found"}</span>
+          <ul className="mjr-chatlist">{found.map((c) => row(c))}</ul>
+        </>
+      );
+    }
+    if (activeProject) {
+      const p = projects.find((x) => x.id === activeProject);
+      const list = chats.filter((c) => c.projectId === activeProject);
+      return (
+        <>
+          <div className="mjr-projhead">
+            <button type="button" className="mjr-back" onClick={() => setActiveProject(null)} aria-label="All chats">‹</button>
+            <b>{p?.name || "Project"}</b>
+            {p && <button type="button" className="mjr-more" onClick={() => { setEditProject(p); projectDialog.current?.showModal(); }} aria-label="Project options">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.7" fill="currentColor" /><circle cx="12" cy="12" r="1.7" fill="currentColor" /><circle cx="19" cy="12" r="1.7" fill="currentColor" /></svg>
+            </button>}
+          </div>
+          <p className="mja-note mjr-projnote">New chats started here go into this project.</p>
+          {list.length ? <ul className="mjr-chatlist">{list.map((c) => row(c))}</ul> : <p className="mja-muted mjr-nochats">No chats in this project yet.</p>}
+        </>
+      );
+    }
+    const pinned = chats.filter((c) => c.pinned);
+    const recent = chats.filter((c) => !c.pinned && !c.projectId);
+    let last = "";
+    return (
+      <>
+        {pinned.length > 0 && (<><span className="mjr-group">Pinned</span><ul className="mjr-chatlist">{pinned.map((c) => row(c))}</ul></>)}
+        <div className="mjr-projects">
+          <span className="mjr-group">Projects</span>
+          <ul className="mjr-chatlist">
+            {projects.map((p) => (
+              <li key={p.id}>
+                <div className="mjr-chatrow">
+                  <button type="button" onClick={() => setActiveProject(p.id)}>
+                    <b><span className="mjr-folder" aria-hidden="true">▣</span> {p.pinned && "📌 "}{p.name}</b>
+                    <small>{p.count} chat{p.count === 1 ? "" : "s"}</small>
+                  </button>
+                </div>
+              </li>
+            ))}
+            <li><button type="button" className="mjr-newproj" onClick={() => { setEditChat(null); setEditProject("new"); projectDialog.current?.showModal(); }}>+ New project</button></li>
+          </ul>
+        </div>
+        {recent.length > 0 ? recent.map((c) => {
+          const g = groupOf(c.updatedAt);
+          const head = g !== last ? (last = g) : null;
+          return (
+            <div key={c.id}>
+              {head && <span className="mjr-group">{head}</span>}
+              <ul className="mjr-chatlist">{row(c)}</ul>
+            </div>
+          );
+        }) : !pinned.length && <p className="mja-muted mjr-nochats">The team&apos;s conversations will appear here.</p>}
+      </>
+    );
+  };
+
+  const navPanel = (
+    <>
+      <button type="button" className="mja-btn red sm mjr-newbtn" onClick={newChat}><Icon d={I.plus} /> {activeProject ? "New chat in project" : "New chat"}</button>
+      <label className="mjr-search"><span className="mja-sr">Search chats</span>
+        <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search chats" enterKeyHint="search" />
+      </label>
+      {chatList()}
+    </>
+  );
+
   const lastAssistant = msgs.map((m) => m.role).lastIndexOf("assistant");
   const uploading = files.some((f) => f.uploading);
 
@@ -370,10 +543,14 @@ export default function ArikChat({ name, firstName, suggestions, ready, canRenam
   }
 
   return (
+    <div className="mjr-wrap">
+    <aside className="mjr-side" aria-label="Team chats">
+      {navPanel}
+    </aside>
     <div className={"mjr" + (msgs.length ? " has-msgs" : "")}>
       <div className="mjr-top">
-        <button type="button" className="mja-btn line sm" onClick={openHistory}><Icon d={I.chats} /> Chats</button>
-        <button type="button" className="mja-btn line sm" onClick={newChat} disabled={!msgs.length}><Icon d={I.plus} /> New</button>
+        <button type="button" className="mja-btn line sm mjr-chatsbtn" onClick={openHistory}><Icon d={I.chats} /> Chats</button>
+        <button type="button" className="mja-btn line sm" onClick={newChat} disabled={!msgs.length && !chatId}><Icon d={I.plus} /> New chat</button>
         <label className="mjr-mode">
           <span className="mja-sr">How {name} works</span>
           <select value={mode} onChange={(e) => setMode(e.target.value as Mode)} title={MODES.find((m) => m[0] === mode)?.[2]}>
@@ -393,7 +570,13 @@ export default function ArikChat({ name, firstName, suggestions, ready, canRenam
           <div className="mjr-suggest">
             {suggestions.map((s) => <button key={s} type="button" onClick={() => ask(s)}>{s}</button>)}
           </div>
-          {canRename && <p className="mja-note">You can rename {name} at the bottom of this page.</p>}
+          {chats && chats.length > 0 && (
+            <div className="mjr-recent">
+              <h3>Recent team chats</h3>
+              {chatList(4)}
+              {chats.length > 4 && <button type="button" className="mja-linkbtn" onClick={openHistory}>All {chats.length} chats</button>}
+            </div>
+          )}
         </div>
       ) : (
         <ol className="mjr-thread" aria-live="polite">
@@ -407,7 +590,8 @@ export default function ArikChat({ name, firstName, suggestions, ready, canRenam
                     : <span key={f.key} className="mjr-doc"><Icon d={I.doc} />{f.name}</span>)}
                 </div>
               )}
-              {m.role === "user" ? (m.content && <p className="mjr-bubble">{m.content}</p>) : (
+              {m.role === "user" && m.author && meKey && m.author !== meKey && <span className="mjr-author">{m.authorName || "Someone"}</span>}
+              {m.role === "user" ? (m.content && <p className={"mjr-bubble" + (m.author && meKey && m.author !== meKey ? " other" : "")}>{m.content}</p>) : (
                 <div className="mjr-answer">
                   {m.files?.filter((f) => f.kind === "image" && f.preview).map((f) => (
                     <figure key={f.key} className="mjr-gen">
@@ -508,24 +692,64 @@ export default function ArikChat({ name, firstName, suggestions, ready, canRenam
 
       <dialog ref={history} className="mja-dialog mjr-history" aria-labelledby="chats-title">
         <div className="mja-dialog-head">
-          <h3 id="chats-title" className="mja-h3">Your chats</h3>
+          <h3 id="chats-title" className="mja-h3">Team chats</h3>
           <button type="button" className="mja-menu" onClick={() => history.current?.close()} aria-label="Close"><Icon d={I.close} /></button>
         </div>
-        <button type="button" className="mja-btn red sm" onClick={newChat}><Icon d={I.plus} /> New chat</button>
-        {!chats ? <div className="mja-skel"><i /><i /></div> : chats.length === 0 ? <p className="mja-muted">No chats yet.</p> : (
-          <ul className="mjr-chatlist">
-            {chats.map((c) => (
-              <li key={c.id} className={c.id === chatId ? "on" : ""}>
-                <button type="button" onClick={() => openChat(c.id)}>
-                  <b>{c.title}</b>
-                  <small>{new Date(c.updatedAt).toLocaleString("en-NG", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}</small>
-                </button>
-                <button type="button" className="mjr-del" onClick={() => removeChat(c.id)} aria-label={`Delete ${c.title}`}><Icon d={I.trash} /></button>
-              </li>
-            ))}
-          </ul>
+        {navPanel}
+      </dialog>
+
+      <dialog ref={chatDialog} className="mja-dialog small" aria-labelledby="chat-opt-title">
+        {editChat && (
+          <form key={editChat.id} className="mja-dialog-form" onSubmit={async (e) => {
+            e.preventDefault();
+            const d = new FormData(e.currentTarget);
+            await saveChat(editChat.id, { title: String(d.get("title") || ""), pinned: d.get("pinned") === "on", projectId: String(d.get("project") || "") || null });
+            chatDialog.current?.close(); flash("Saved.");
+          }}>
+            <h3 id="chat-opt-title" className="mja-h3">Chat</h3>
+            <p className="mja-note">Started by {who(editChat)}. Everyone on the team can see it.</p>
+            <div className="mja-field"><label htmlFor="co-title">Name</label><input id="co-title" name="title" defaultValue={editChat.title} maxLength={80} required /></div>
+            <div className="mja-field"><label htmlFor="co-proj">Project</label>
+              <select id="co-proj" name="project" defaultValue={editChat.projectId || ""}>
+                <option value="">No project</option>
+                {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+              </select>
+            </div>
+            <button type="button" className="mja-linkbtn" onClick={() => { chatDialog.current?.close(); setEditProject("new"); projectDialog.current?.showModal(); }}>+ New project for this chat</button>
+            <label className="mja-toggle"><span><b>Pin to the top</b><small>Pinned chats stay at the top for everyone.</small></span>
+              <span className="mja-switch"><input type="checkbox" role="switch" name="pinned" defaultChecked={editChat.pinned} /><span aria-hidden="true" /></span></label>
+            <div className="mja-dialog-actions">
+              {(editChat.author === meKey || isOwner) && <button type="button" className="mja-btn line danger mjs-del" onClick={() => removeChat(editChat.id)}>Delete</button>}
+              <button type="button" className="mja-btn line" onClick={() => chatDialog.current?.close()}>Cancel</button>
+              <button type="submit" className="mja-btn red">Save</button>
+            </div>
+          </form>
         )}
       </dialog>
+
+      <dialog ref={projectDialog} className="mja-dialog small" aria-labelledby="proj-title">
+        {editProject && (
+          <form key={editProject === "new" ? "new" : editProject.id} className="mja-dialog-form" onSubmit={(e) => {
+            e.preventDefault();
+            const d = new FormData(e.currentTarget);
+            void saveProject(String(d.get("name") || ""), d.get("pinned") === "on");
+          }}>
+            <h3 id="proj-title" className="mja-h3">{editProject === "new" ? "New project" : "Project"}</h3>
+            <p className="mja-note">A project keeps related chats together, for example one customer, one site, or one tender.</p>
+            <div className="mja-field"><label htmlFor="pj-name">Name</label><input id="pj-name" name="name" required maxLength={60} defaultValue={editProject === "new" ? "" : editProject.name} placeholder="e.g. Lekki duplex solar, FIRS tender" /></div>
+            {editProject !== "new" && (
+              <label className="mja-toggle"><span><b>Pin to the top</b><small>Pinned projects are listed first.</small></span>
+                <span className="mja-switch"><input type="checkbox" role="switch" name="pinned" defaultChecked={editProject.pinned} /><span aria-hidden="true" /></span></label>
+            )}
+            <div className="mja-dialog-actions">
+              {editProject !== "new" && (editProject.createdBy === meKey || isOwner) && <button type="button" className="mja-btn line danger mjs-del" onClick={() => removeProject(editProject)}>Remove</button>}
+              <button type="button" className="mja-btn line" onClick={() => projectDialog.current?.close()}>Cancel</button>
+              <button type="submit" className="mja-btn red">{editProject === "new" ? "Create" : "Save"}</button>
+            </div>
+          </form>
+        )}
+      </dialog>
+    </div>
     </div>
   );
 }

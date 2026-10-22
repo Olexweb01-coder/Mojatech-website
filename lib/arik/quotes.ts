@@ -11,6 +11,16 @@ import { nextNumber, sanitise, totals, naira, todayLagos, DOC_LABEL, type Quote,
  * does every sum, and makes the PDF and Word files. */
 
 export const DOC_MIME = "application/vnd.mojatech.doc+json";
+/** Any other document: the text of a reply, made into PDF and Word on request. */
+export const MD_MIME = "text/markdown; mojatech=document";
+
+const FILE_WORDS = /\b(pdf|word|docx|doc file|document|printable|letterhead)\b/i;
+const MAKE_WORDS = /\b(make|create|give|send|generate|export|turn|convert|do|prepare|produce|save|put|draft|write|need|want)\b/i;
+/** "Make that a PDF", "can you do the pdf yourself?", "write a proposal for X as a Word document". */
+export const wantsFile = (text: string) => FILE_WORDS.test(text) && MAKE_WORDS.test(text) && !QUOTE_HINT.test(text);
+/** True when the request is about the previous reply rather than new content. */
+export const aboutPrevious = (text: string) =>
+  text.length < 160 && /\b(this|that|it|above|yourself|previous|last|same|the (answer|reply|text|one))\b/i.test(text) && !/\b(about|for|on|regarding)\b\s+\w{4,}/i.test(text.replace(/\b(for|on) (me|us|it|this|that)\b/gi, ""));
 export const QUOTE_HINT = /\b(quotations?|quotes?|invoices?|pro-?forma|receipts?)\b/i;
 const ACTION_HINT = /\b(make|create|prepare|generate|draft|write|do|give|raise|issue|send|need|update|change|revise|add|remove|increase|reduce|turn|convert|apply|include|put|set)\b/i;
 
@@ -30,7 +40,7 @@ export async function handleQuote(o: {
   const docRefs = o.history.flatMap((m) => m.files).filter((f) => f.kind === "doc");
   let previous: Quote | null = null;
   if (docRefs.length) {
-    const [f] = await getFiles(o.owner, [docRefs[docRefs.length - 1].id]);
+    const [f] = await getFiles([docRefs[docRefs.length - 1].id]);
     if (f?.mime === DOC_MIME) try { previous = JSON.parse(f.text) as Quote; } catch { /* ignore */ }
   }
 

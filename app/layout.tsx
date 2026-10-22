@@ -25,6 +25,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           (function () {
             var root = document.documentElement;
             if (root.hasAttribute("data-intro")) return;   /* decide once, never twice */
+            /* Time spent in the admin is not a website visit: it must not use up the
+               opening, or hold it back for the next 10 minutes. */
+            if (location.pathname.indexOf("/admin") === 0) { root.setAttribute("data-intro", "off"); return; }
             var show = false;
             var calm = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
             try {

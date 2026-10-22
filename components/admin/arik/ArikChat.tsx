@@ -13,7 +13,7 @@ import { record, transcribe, speak, stopSpeaking, unlockAudio, browserRecognitio
 type FileChip = { id?: string; name: string; kind: "image" | "doc"; preview?: string; uploading?: boolean; key: string; chars?: number };
 type Msg = { key: string; role: "user" | "assistant"; content: string; files?: FileChip[]; via?: string; error?: string; streaming?: boolean; status?: string };
 type ChatItem = { id: string; title: string; updatedAt: string };
-type Mode = "auto" | "fast" | "deep" | "web" | "image";
+type Mode = "auto" | "fast" | "deep" | "web" | "image" | "doc";
 
 const MODES: [Mode, string, string][] = [
   ["auto", "Auto", "Picks the best brain for each question"],
@@ -21,6 +21,7 @@ const MODES: [Mode, string, string][] = [
   ["deep", "Deep", "Longer, more careful work"],
   ["web", "Web search", "Searches the internet for current information"],
   ["image", "Picture", "Creates a picture, or edits a photo you share"],
+  ["doc", "Quotation", "Quotations, invoices, pro-formas and receipts as PDF and Word"],
 ];
 
 let seq = 0;
@@ -130,11 +131,12 @@ export default function ArikChat({ name, firstName, suggestions, ready, canRenam
         while ((i = buf.indexOf("\n\n")) >= 0) {
           const line = buf.slice(0, i).replace(/^data: /, "");
           buf = buf.slice(i + 2);
-          let ev: { t?: string; chatId?: string; via?: string; error?: string; done?: boolean; provider?: string; status?: string; image?: { id: string; name: string } };
+          let ev: { t?: string; chatId?: string; via?: string; error?: string; done?: boolean; provider?: string; status?: string; image?: { id: string; name: string }; doc?: { id: string; name: string } };
           try { ev = JSON.parse(line); } catch { continue; }
           if (ev.chatId) setChatId(ev.chatId);
           if (ev.via) patch({ via: ev.via });
           if (ev.status) patch({ status: ev.status });
+          if (ev.doc) { const d = ev.doc; patch({ files: [{ key: key(), id: d.id, name: d.name, kind: "doc" }], status: "" }); }
           if (ev.image) { const img = ev.image; patch({ files: [{ key: key(), id: img.id, name: img.name, kind: "image", preview: `/admin/api/arik/files/${img.id}` }], status: "" }); }
           if (ev.t) { pending += ev.t; if (!frame) frame = requestAnimationFrame(flush); }
           if (ev.error) patch({ error: ev.error === "setup" ? "setup" : ev.error });
@@ -322,6 +324,30 @@ export default function ArikChat({ name, firstName, suggestions, ready, canRenam
     if (id === chatId) newChat();
   };
 
+  /* Any reply as a branded PDF or Word document. */
+  const exportAs = async (content: string, format: "pdf" | "docx") => {
+    flash(format === "pdf" ? "Making the PDF…" : "Making the Word file…");
+    try {
+      const res = await fetch("/admin/api/arik/export", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: content, format }) });
+      if (!res.ok) throw new Error();
+      const name = /filename="([^"]+)"/.exec(res.headers.get("content-disposition") || "")?.[1] || `MOJATECH.${format}`;
+      const url = URL.createObjectURL(await res.blob());
+      const a = document.createElement("a"); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 10_000);
+      flash("Saved to your downloads.");
+    } catch { flash("Could not make the document. Try again."); }
+  };
+
+  /* Send a quotation straight to WhatsApp, email and so on, from the phone's share sheet. */
+  const shareFile = async (href: string, name: string) => {
+    try {
+      const blob = await fetch(href).then((r) => { if (!r.ok) throw new Error(); return r.blob(); });
+      const file = new File([blob], `${name.split(" · ")[0].replace(/[^\w .()-]+/g, "")}.pdf`, { type: "application/pdf" });
+      if (navigator.canShare?.({ files: [file] })) await navigator.share({ files: [file], title: name });
+      else { const a = document.createElement("a"); a.href = URL.createObjectURL(file); a.download = file.name; a.click(); flash("This device cannot share files, so it was downloaded instead."); }
+    } catch { /* closed the share sheet */ }
+  };
+
   const copy = async (t: string) => { try { await navigator.clipboard.writeText(t); flash("Copied."); } catch { flash("Could not copy."); } };
 
   const lastAssistant = msgs.map((m) => m.role).lastIndexOf("assistant");
@@ -395,6 +421,17 @@ export default function ArikChat({ name, firstName, suggestions, ready, canRenam
                       </figcaption>
                     </figure>
                   ))}
+                  {m.files?.filter((f) => f.kind === "doc" && f.id).map((f) => (
+                    <div key={f.key} className="mjr-doccard">
+                      <span className="mjr-doccard-icon" aria-hidden="true"><Icon d={I.doc} /></span>
+                      <span className="mjr-doccard-name">{f.name}</span>
+                      <span className="mjr-doccard-actions">
+                        <a className="mja-btn red sm" href={`/admin/api/arik/files/${f.id}?format=pdf`} download>PDF</a>
+                        <a className="mja-btn line sm" href={`/admin/api/arik/files/${f.id}?format=docx`} download>Word</a>
+                        <button type="button" className="mja-btn line sm" onClick={() => shareFile(`/admin/api/arik/files/${f.id}?format=pdf`, f.name)}>Share</button>
+                      </span>
+                    </div>
+                  ))}
                   {m.content ? <Markdown text={m.content} /> : m.streaming && !m.error ? (
                     <span className="mjr-thinking"><span className="mjr-typing" aria-label={`${name} is thinking`}><i /><i /><i /></span>{m.status && <em>{m.status}</em>}</span>
                   ) : null}
@@ -405,6 +442,12 @@ export default function ArikChat({ name, firstName, suggestions, ready, canRenam
                     <div className="mjr-tools">
                       <button type="button" onClick={() => copy(m.content)} aria-label="Copy"><Icon d={I.copy} /></button>
                       <button type="button" onClick={() => readAloud(m)} aria-label={speakingKey === m.key ? "Stop reading" : "Read aloud"} aria-pressed={speakingKey === m.key}><Icon d={speakingKey === m.key ? I.stop : I.speaker} /></button>
+                      {!m.files?.some((f) => f.kind === "doc") && (
+                        <>
+                          <button type="button" className="mjr-fmt" onClick={() => exportAs(m.content, "pdf")} aria-label="Save as PDF">PDF</button>
+                          <button type="button" className="mjr-fmt" onClick={() => exportAs(m.content, "docx")} aria-label="Save as Word">Word</button>
+                        </>
+                      )}
                       {i === lastAssistant && !busy && <button type="button" onClick={() => ask("", { retry: true })} aria-label="Try again"><Icon d={I.retry} /></button>}
                       {m.via && <span className="mjr-via">{m.via}</span>}
                     </div>

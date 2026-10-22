@@ -2,6 +2,7 @@ import { guard } from "../guard";
 import { streamReply, configured, NoProviderError, type ChatMessage, type Intent } from "@/lib/arik/providers";
 import { systemPrompt } from "@/lib/arik/context";
 import { REMIND_HINT, handleReminder } from "@/lib/arik/reminders";
+import { wantsQuote, handleQuote } from "@/lib/arik/quotes";
 import { imagesConfigured, takeImage, giveBack, makeImage, shapeFor, dailyLimit, imagesUsedToday, PROMPT_WRITER } from "@/lib/arik/images";
 import {
   ownerKey, ownsChat, createChat, getMessages, addMessage, dropLastAssistant, getFiles, getArikSettings, saveFile, type FileRef,
@@ -76,6 +77,12 @@ export async function POST(req: Request) {
   /* Pictures: asked for in Image mode, or recognised from the request. */
   const latestImages = (history[lastUserIndex]?.files || []).map((f) => stored.get(f.id)).filter((f) => f?.kind === "image" && f.bytes);
   const wantsImage = !body.voice && (mode === "image" || (mode === "auto" && (IMAGE_HINT.test(lastText) || (latestImages.length > 0 && EDIT_HINT.test(lastText)))));
+  /* Quotations, invoices, pro-formas and receipts, and changes to one in this chat. */
+  const chatHasDoc = history.some((m) => m.files.some((f) => f.kind === "doc" && m.role === "assistant"));
+  if (!wantsImage && !body.voice && lastText && (mode === "doc" || (wantsQuote(lastText, chatHasDoc) && !REMIND_HINT.test(lastText)))) {
+    const r = await handleQuote({ text: lastText, me, owner, signal: req.signal, history }).catch((e) => { console.error("quote failed", e); return null; });
+    if (r) return quickTurn(chatId, r.content, req.signal, r.files);
+  }
   if (!wantsImage && !body.retry && text && REMIND_HINT.test(text)) {
     const reply = await handleReminder(text, owner, req.signal).catch(() => null);
     if (reply) return quickTurn(chatId, reply, req.signal);
@@ -120,16 +127,18 @@ export async function POST(req: Request) {
 
 /* ---------- An answer that is already worked out (a reminder was set) ---------- */
 
-function quickTurn(chatId: string, content: string, signal: AbortSignal) {
+function quickTurn(chatId: string, content: string, signal: AbortSignal, files: FileRef[] = []) {
   const enc = new TextEncoder();
   void signal;
   const stream = new ReadableStream({
     async start(controller) {
       const send = (x: unknown) => { try { controller.enqueue(enc.encode(`data: ${JSON.stringify(x)}\n\n`)); } catch { /* closed */ } };
       send({ chatId });
+      for (const f of files) send({ doc: f });
       send({ t: content });
-      await addMessage(chatId, "assistant", content, [], { intent: "reminder", provider: "Schedule" }).catch(() => {});
-      send({ done: true, provider: "Schedule" });
+      const provider = files.length ? "Documents" : "Schedule";
+      await addMessage(chatId, "assistant", content, files, { intent: files.length ? "document" : "reminder", provider }).catch(() => {});
+      send({ done: true, provider });
       try { controller.close(); } catch { /* closed */ }
     },
   });

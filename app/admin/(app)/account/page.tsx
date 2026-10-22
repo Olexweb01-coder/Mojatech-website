@@ -4,6 +4,8 @@ import { ALERTS, prefsOf, type AlertKind } from "@/lib/push";
 import { ownerKey } from "@/lib/arik/store";
 import { dbConfigured } from "@/lib/store";
 import Alerts from "@/components/admin/Alerts";
+import DocSettingsForm from "./DocSettingsForm";
+import { getDocSettings } from "@/lib/docs/settings";
 import AccountForms from "./AccountForms";
 
 export const metadata = { title: "Your account" };
@@ -19,7 +21,12 @@ export default async function Account({ searchParams }: { searchParams: Promise<
   return (
     <>
       <AccountForms me={{ name: me.name, email: me.email, role: ROLES[me.role].label, master: me.master, mustChange: me.mustChange }} first={Boolean(first) || me.mustChange} />
-      {!me.mustChange && dbConfigured() && <div className="mja-detail"><Alerts kinds={kinds} prefs={prefs} /></div>}
+      {!me.mustChange && dbConfigured() && (
+        <div className="mja-detail">
+          <Alerts kinds={kinds} prefs={prefs} />
+          {me.role === "owner" && <DocSettingsForm s={await getDocSettings()} />}
+        </div>
+      )}
     </>
   );
 }

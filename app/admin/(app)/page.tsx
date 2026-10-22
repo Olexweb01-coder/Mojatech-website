@@ -27,7 +27,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ d
   const suggestions = [
     unseen ? `Summarise my ${unseen} new enquiries and suggest replies` : can(me, "enquiries") ? "Which enquiries are still open, and what should I do next?" : "",
     "Size a solar and inverter system for a 3-bedroom flat in Lagos",
-    "Remind me tomorrow at 9am to follow up on open quotes",
+    "Make a quotation for Tunde: 8 × 550W panels at ₦185k, a 5kVA inverter at ₦1.25m, installation ₦150k",
     "Write a friendly WhatsApp reply to a customer asking for a 5kVA quote",
     "Create a picture: a promo flyer for our solar installations, MOJATECH colours",
     waiting ? `I have ${waiting} reviews waiting. What should I check before publishing?` : "",

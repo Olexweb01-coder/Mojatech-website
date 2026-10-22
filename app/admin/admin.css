@@ -429,6 +429,13 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .mjr-gen img { width: 100%; height: auto; border-radius: 18px; border: 1px solid var(--line); background: var(--surface-2); }
 .mjr-gen figcaption { display: flex; gap: 8px; }
 
+.mjr-doccard { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 12px; margin-bottom: 12px; padding: 14px; border-radius: 18px; background: var(--surface); border: 1px solid var(--line); max-width: 560px; }
+.mjr-doccard-icon { display: grid; place-items: center; width: 44px; height: 52px; border-radius: 10px; background: rgba(224, 38, 43, .1); color: var(--red); flex: none; }
+.mjr-doccard-icon svg { width: 24px; height: 24px; }
+.mjr-doccard-name { flex: 1; min-width: 160px; font-weight: 700; line-height: 1.35; }
+.mjr-doccard-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.mjr-tools .mjr-fmt { width: auto; padding: 0 9px; font: inherit; font-size: .76rem; font-weight: 800; letter-spacing: .02em; }
+
 /* Formatted replies */
 .mjr-md { font-size: 1rem; line-height: 1.62; overflow-wrap: anywhere; }
 .mjr-md > * + * { margin-top: .75em; }

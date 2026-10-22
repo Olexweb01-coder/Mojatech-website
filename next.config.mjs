@@ -37,6 +37,12 @@ const securityHeaders = [
 const nextConfig = {
   // The stylesheet rides along with the page: one request less before the first paint.
   experimental: { inlineCss: true },
+  /* PDF making: pdfkit runs as a normal Node package, and the fonts and logo the
+     documents use are shipped with the functions that make them. */
+  serverExternalPackages: ["pdfkit"],
+  outputFileTracingIncludes: {
+    "/admin/api/arik/**": ["./lib/docs/fonts/**", "./public/brand/mojatech-mark.png", "./node_modules/pdfkit/js/data/**"],
+  },
   reactStrictMode: true,
   poweredByHeader: false,          // stop announcing the software we run
   async headers() {

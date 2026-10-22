@@ -131,6 +131,14 @@ html:has(dialog[open]) { overflow: hidden; }
 /* The dark house shows first; the lit one is revealed by the film. */
 .bld-off, .bld-gl { display: block; }
 .ch-hero .bld-on { opacity: 0; }
+/* Until the scroll animation is running, the film already takes its full scrolling
+   length and the stage stays stuck to the top. A scroll made while the animation is
+   still loading then holds the hero in place instead of sliding the next section
+   into view and snapping back. (620vh = the film's scroll length in FilmMotion.) */
+@media (prefers-reduced-motion: no-preference) {
+  .film:not(.is-live) { height: calc(100lvh + 620vh); }
+  .film:not(.is-live) .stage { position: sticky; top: 0; }
+}
 
 /* ---------------- Sections ---------------- */
 .sec { padding: clamp(80px, 11vw, 150px) 0; }
@@ -556,9 +564,9 @@ html.in-film .hdr.solid {
 /* Work gallery: cards that open a project page */
 .wlink { display: block; color: inherit; text-decoration: none; border-radius: 22px; }
 .wlink:focus-visible { outline: 3px solid var(--blue); outline-offset: 3px; }
-.wcount { display: block; margin-top: 4px; font-style: normal; font-size: .82rem; font-weight: 700; color: var(--red); }
+.wphotos { display: block; margin-top: 4px; font-style: normal; font-size: .82rem; font-weight: 700; color: var(--red); }
 .wstory { display: grid; gap: 14px; margin-top: 20px; color: var(--ink-2); font-size: 1.05rem; line-height: 1.65; }
-.pdetail .pbuy .ctas { margin-top: 26px; }
+.wstory + .ctas { margin-top: 26px; }
 
 /* Review form */
 .review-page .form { margin-top: 28px; position: relative; }

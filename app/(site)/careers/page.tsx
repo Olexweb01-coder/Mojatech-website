@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Hero, Ctas, WA } from "@/components/site/Bits";
 import PageMotion from "@/components/site/PageMotion";
 import { CareersForm } from "@/components/forms/Forms";
@@ -26,7 +27,7 @@ export default function Careers() {
       <Hero kicker="Careers" head="Learn the trade on real sites."
         lead="MOJATECH takes on interns, apprentices, NYSC members and industrial training students, and teaches them on live jobs, not on paper."
         img="/work/flour-mills-electrical.jpg" pos="50% 45%"
-        ctas={<div className="ctas"><a className="btn btn-red" href="#apply">Apply now</a><a className="btn btn-light" href="/about">About MOJATECH</a></div>} />
+        ctas={<div className="ctas"><a className="btn btn-red" href="#apply">Apply now</a><Link className="btn btn-light" href="/about">About MOJATECH</Link></div>} />
 
       <section className="sec">
         <div className="wrap sec-head">

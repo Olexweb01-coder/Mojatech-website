@@ -90,6 +90,9 @@ export default function FilmMotion() {
       })();
 
       ctx = gsap.context(() => {
+        /* GSAP takes over from the CSS placeholder (see .film:not(.is-live) in globals.css)
+           in the same frame, so nothing moves when the pin appears. */
+        document.querySelector("#film")?.classList.add("is-live");
         const chs = gsap.utils.toArray<HTMLElement>(".ch");
         /* Motion speed is fixed at the original rate (about 60% of a screen per beat).
            HOLD adds quiet time between scenes: the movement stays exactly as it was,
@@ -146,8 +149,30 @@ export default function FilmMotion() {
     };
     const wake = ["scroll", "wheel", "touchstart", "pointermove", "keydown"] as const;
     wake.forEach((ev) => window.addEventListener(ev, start, { passive: true }));
+    /* Also start on its own once the page has loaded and the browser is idle, so the
+       film is ready before the first scroll instead of setting itself up mid-scroll
+       (which made the hero jump). Waiting until load keeps the first paint fast. */
+    let idle = 0, delay = 0, watch: MutationObserver | undefined;
+    const whenIdle = () => {
+      /* While the opening plays, wait for it to finish, so setting up never makes it stutter. */
+      const root = document.documentElement;
+      if (root.getAttribute("data-intro") === "on") {
+        watch = new MutationObserver(() => { if (root.getAttribute("data-intro") !== "on") { watch?.disconnect(); whenIdle(); } });
+        watch.observe(root, { attributes: true, attributeFilter: ["data-intro"] });
+        return;
+      }
+      const ric = (window as Window & { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number }).requestIdleCallback;
+      if (ric) idle = ric(() => void start(), { timeout: 1200 }); else delay = window.setTimeout(() => void start(), 300);
+    };
+    if (document.readyState === "complete") whenIdle(); else window.addEventListener("load", whenIdle, { once: true });
     return () => {
+      window.removeEventListener("load", whenIdle);
+      watch?.disconnect();
+      const cic = (window as Window & { cancelIdleCallback?: (id: number) => void }).cancelIdleCallback;
+      if (idle && cic) cic(idle);
+      window.clearTimeout(delay);
       wake.forEach((ev) => window.removeEventListener(ev, start));
+      document.querySelector("#film")?.classList.remove("is-live");
       document.documentElement.classList.remove("in-film");
       ST?.getAll().forEach((t) => t.kill(true));
       ctx?.revert();

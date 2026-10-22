@@ -36,7 +36,7 @@ export default async function Work() {
                 <figure className="wcard">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={w.img} alt={w.alt} loading="lazy" />
-                  <figcaption><b>{w.title}</b>{w.type && <span> &mdash; {w.type}</span>}{w.photos.length > 1 && <em className="wcount">{w.photos.length} photos</em>}</figcaption>
+                  <figcaption><b>{w.title}</b>{w.type && <span> &mdash; {w.type}</span>}{w.photos.length > 1 && <em className="wphotos">{w.photos.length} photos</em>}</figcaption>
                 </figure>
               );
               return <li key={w.slug}>{hasPage(w) ? <Link href={`/work/${w.slug}`} className="wlink">{card}</Link> : card}</li>;

@@ -299,8 +299,11 @@ export async function listProducts(): Promise<Product[]> {
     if (!all.length && !(await kvGet<boolean>(SEEDED))) return samples;
     return all.filter((p) => p.visible !== false);
   } catch (e) {
-    console.error("products: database unavailable, showing samples", e);
-    return samples;
+    /* Never fall back to the sample catalogue here: its prices are not real. Failing
+       instead makes the website keep the last good copy of each page until the
+       database is back. */
+    console.error("products: database unavailable", e);
+    throw e;
   }
 }
 

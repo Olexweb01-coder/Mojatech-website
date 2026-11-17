@@ -23,7 +23,8 @@ export async function POST(req: Request) {
 
   /* Bots: a hidden field people never see, and forms filled in faster than a
      person could. Answer "ok" so they learn nothing. */
-  if (clip(body.website, 200) || Number(body.t) < 2500) return ok();
+  /* An order is one tap on a button, so it has no filling-in time to measure. */
+  if (clip(body.website, 200) || (body.kind !== "order" && Number(body.t) < 2500)) return ok();
 
   const kind = (["quote", "order", "careers"] as Kind[]).find((k) => k === body.kind);
   if (!kind) return Response.json({ ok: false }, { status: 400 });

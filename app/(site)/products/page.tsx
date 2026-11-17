@@ -36,12 +36,13 @@ export default async function Products() {
         <div className="wrap">
           <nav className="pcats" aria-label="Product categories">
             <a href="#all" className="on">All</a>
-            {categories.map((c) => <a key={c} href={"#" + c.toLowerCase().replace(/\s/g, "-")}>{c}</a>)}
+            {categories.filter((c) => products.some((p) => p.category === c)).map((c) => <a key={c} href={"#" + c.toLowerCase().replace(/\s/g, "-")}>{c}</a>)}
           </nav>
 
           <ul className="pgrid" id="all">
-            {products.map((p) => (
-              <li key={p.slug} id={p.category.toLowerCase().replace(/\s/g, "-")}>
+            {products.map((p, i) => (
+              /* The category link lands on the first product of that category; an id may only be used once on a page. */
+              <li key={p.slug} id={products.findIndex((x) => x.category === p.category) === i ? p.category.toLowerCase().replace(/\s/g, "-") : undefined}>
                 <Link className="pcard" href={"/products/" + p.slug}>
                   <span className="pcard-img">
                     {/* eslint-disable-next-line @next/next/no-img-element */}

@@ -25,7 +25,9 @@ function useOpenedAt() {
 function useSteps(total: number) {
   const [step, setStep] = useState(1);
   const [sent, setSent] = useState(false);
-  return { step, setStep, sent, setSent, total };
+  const [error, setError] = useState("");
+  const [unsaved, setUnsaved] = useState(false);   /* the website could not keep its copy */
+  return { step, setStep, sent, setSent, total, error, setError, unsaved, setUnsaved };
 }
 function waLink(lines: string[]) {
   return company.contact.whatsapp + "?text=" + encodeURIComponent(lines.filter(Boolean).join(" "));
@@ -82,11 +84,15 @@ export function QuoteForm() {
             <div className="field"><label htmlFor="phone">Phone or WhatsApp</label><input id="phone" type="tel" value={f.phone} onChange={(e) => set("phone", e.target.value)} placeholder="0816 168 3153" /></div>
             <div className="field"><label htmlFor="email">Email (optional)</label><input id="email" type="email" value={f.email} onChange={(e) => set("email", e.target.value)} /></div>
           </div>
+          {s.error && <p className="ferror" role="alert">{s.error}</p>}
           <div className="fnav">
-            <button className="btn btn-line back" type="button" hidden={s.step === 1} onClick={() => s.setStep(s.step - 1)}>Back</button>
+            <button className="btn btn-line back" type="button" hidden={s.step === 1} onClick={() => { s.setError(""); s.setStep(s.step - 1); }}>Back</button>
             {s.step < 3
               ? <button className="btn btn-red next" type="button" onClick={() => s.setStep(s.step + 1)}>Continue</button>
-              : <a className="btn btn-red next" href={send} target="_blank" rel="noopener noreferrer" onClick={() => { record(); s.setSent(true); }}>Send request</a>}
+              : <a className="btn btn-red next" href={send} target="_blank" rel="noopener noreferrer" onClick={(e) => {
+                  if (!f.name.trim() || !f.phone.trim()) { e.preventDefault(); s.setError("Please add your name and a phone number, so we can reach you."); return; }
+                  s.setError(""); void record().then((ok) => { if (!ok) s.setUnsaved(true); }); s.setSent(true);
+                }}>Send request</a>}
           </div>
         </>
       )}
@@ -94,6 +100,7 @@ export function QuoteForm() {
         <div className="tick" />
         <h3>Thank you. Your request is on its way.</h3>
         <p className="lead" style={{ marginTop: 10 }}>If WhatsApp did not open, call {company.contact.phoneDisplay} or email {company.contact.email}.</p>
+        {s.unsaved && <p className="ferror" role="alert">Our website could not keep a copy of your request, so please make sure you press Send in WhatsApp, or call us.</p>}
       </div>
     </form>
   );
@@ -139,11 +146,15 @@ export function CareersForm() {
             <div className="field"><label htmlFor="cnote">Anything else? (optional)</label>
               <textarea id="cnote" value={f.note} onChange={(e) => set("note", e.target.value)} placeholder="Tell us what you already know, or what you want to learn." /></div>
           </div>
+          {s.error && <p className="ferror" role="alert">{s.error}</p>}
           <div className="fnav">
-            <button className="btn btn-line back" type="button" hidden={s.step === 1} onClick={() => s.setStep(s.step - 1)}>Back</button>
+            <button className="btn btn-line back" type="button" hidden={s.step === 1} onClick={() => { s.setError(""); s.setStep(s.step - 1); }}>Back</button>
             {s.step < 2
-              ? <button className="btn btn-red next" type="button" onClick={() => s.setStep(2)}>Continue</button>
-              : <a className="btn btn-red next" href={send} target="_blank" rel="noopener noreferrer" onClick={() => { record(); s.setSent(true); }}>Send application</a>}
+              ? <button className="btn btn-red next" type="button" onClick={() => { if (!prog) { s.setError("Please choose a programme."); return; } s.setError(""); s.setStep(2); }}>Continue</button>
+              : <a className="btn btn-red next" href={send} target="_blank" rel="noopener noreferrer" onClick={(e) => {
+                  if (!f.name.trim() || !(f.phone.trim() || f.email.trim())) { e.preventDefault(); s.setError("Please add your name and a phone number or email, so we can reach you."); return; }
+                  s.setError(""); void record().then((ok) => { if (!ok) s.setUnsaved(true); }); s.setSent(true);
+                }}>Send application</a>}
           </div>
         </>
       )}
@@ -151,6 +162,7 @@ export function CareersForm() {
         <div className="tick" />
         <h3>Thank you. Your application is in.</h3>
         <p className="lead" style={{ marginTop: 10 }}>You can also email your CV to {company.contact.emailHr}.</p>
+        {s.unsaved && <p className="ferror" role="alert">Our website could not keep a copy of your application, so please make sure you press Send in WhatsApp, or email us.</p>}
       </div>
     </form>
   );

@@ -4,6 +4,9 @@ import { listProducts } from "@/lib/store";
 import { listProjects, hasPage } from "@/lib/work";
 import { siteUrl } from "@/lib/seo";
 
+/* Rebuilt at most once an hour, so products and projects added in the admin always reach it. */
+export const revalidate = 3600;
+
 /** Plain dates and a trailing slash on the home page: the format every search engine accepts. */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [products, projects] = await Promise.all([listProducts(), listProjects()]);
